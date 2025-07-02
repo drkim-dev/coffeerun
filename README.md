@@ -6,7 +6,7 @@
 
 [![Website](https://img.shields.io/badge/🌐_Play_Now-coffeerun.kr-FF6B6B?style=for-the-badge&logo=web&logoColor=white)](https://coffeerun.kr)
 
-![게임 스크린샷](og-image.png)
+![image](https://github.com/user-attachments/assets/c4b46091-9673-49c8-99b9-9c17070f5de2)
 
 </div>
 

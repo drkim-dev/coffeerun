@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- 기본 SEO -->
+    <title>커피런 - 신개념 커피내기 뽑기게임 | 복불복 내기게임</title>
+    <meta name="description" content="회사나 친구들과 함께하는 재미있는 커피내기 게임! 1분만에 끝나는 간단한 뽑기게임으로 누가 커피를 살지 정해보세요. 모바일 지원, 무료게임">
+    <meta name="keywords" content="커피내기, 커피런, 내기게임, 복불복게임, 뽑기게임, 사내게임, 커피내기앱, 랜덤게임, 회사게임, 친구게임">
+    <meta name="author" content="김준하">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="ko">
+
+    <!-- Canonical URL (중복 콘텐츠 방지) -->
+    <link rel="canonical" href="https://coffeerun.kr">
+    <!-- Open Graph (소셜 미디어 공유) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="커피런 - 신개념 커피내기 뽑기게임">
+    <meta property="og:description" content="1분만에 끝나는 재미있는 커피내기 게임! 회사나 친구들과 함께 누가 커피를 살지 정해보세요.">
+    <meta property="og:url" content="https://coffeerun.kr">
+    <meta property="og:image" content="https://coffeerun.kr/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="커피런">
+    <meta property="og:locale" content="ko_KR">
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="커피런 - 신개념 커피내기 뽑기게임">
+    <meta name="twitter:description" content="1분만에 끝나는 재미있는 커피내기 게임!">
+    <meta name="twitter:image" content="https://coffeerun.kr/og-image.png">
+    
+    <!-- 모바일 최적화 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="커피런">
+    
+    <!-- 파비콘 -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    
+    <!-- 구조화 데이터 (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "커피런",
+        "alternateName": "CoffeeRun",
+        "description": "재미있는 커피내기 뽑기게임으로 누가 커피를 살지 정해보세요",
+        "url": "https://coffeerun.kr",
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "KRW"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "김준하",
+            "email": "drkim1239@gmail.com"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "커피런"
+        },
+        "inLanguage": "ko-KR",
+        "isAccessibleForFree": true,
+        "keywords": "커피내기, 내기게임, 복불복게임, 뽑기게임"
+    }
+    </script>
+    
+    <!-- Google Analytics (선택사항) -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Lottie.js 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+</head>
+<body>
+    <h1 class="title">🏁 커피런 ☕</h1>
+    
+    <div class="setup-container">
+        <div class="player-count-selector">
+            <label>🏃‍♂️ 참가 인원 선택:</label>
+            <div class="count-buttons">
+                <button class="count-btn" data-count="2">2명</button>
+                <button class="count-btn active" data-count="3">3명</button>
+                <button class="count-btn" data-count="4">4명</button>
+                <button class="count-btn" data-count="5">5명</button>
+                <button class="count-btn" data-count="6">6명</button>
+                <button class="count-btn" data-count="7">7명</button>
+                <button class="count-btn" data-count="8">8명</button>
+            </div>
+        </div>
+
+        <div class="loser-rank-selector">
+            <label>☕ 당첨자 선택:</label>
+            <div class="rank-buttons">
+                <button class="rank-btn active" data-rank="1" data-type="single">꼴찌</button>
+                <button class="rank-btn" data-rank="2" data-type="single">뒤에서 2등</button>
+                <button class="rank-btn" data-rank="3" data-type="single">뒤에서 3등</button>
+                <button class="rank-btn" data-type="custom">기타</button>
+            </div>
+        </div>
+        
+        <div class="player-inputs-grid" id="playerInputs"></div>
+            <div class="game-help-buttons">
+                <button class="help-btn" onclick="showGameRules()" title="게임 규칙">
+                    📖 게임규칙
+                </button>
+                <button class="help-btn" onclick="showSkillGuide()" title="스킬 설명">
+                    ⚡ 스킬정보
+                </button>
+            </div>
+        <button class="start-btn" onclick="startGame()">🚀 레이스 시작!</button>
+            <div class="game-info-text">
+                <p>🎮 CoffeeRun v1.0 - 신개념 커피 내기 레이싱 게임 🎮</p>
+                <p>개발자: 김준하</p>
+                <p>문의: drkim1239@gmail.com</p>      
+            </div>
+    </div>
+    
+    <!-- 게임규칙 모달 -->
+    <!-- 게임규칙 모달 (기존 내용을 그리드 형태로 변경) -->
+            <div class="modal-overlay" id="rulesModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>📖 게임 규칙</h2>
+                        <button class="modal-close" onclick="closeModal('rulesModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="rules-container">
+                            <!-- 게임 목표 -->
+                            <div class="rule-hero">
+                                <div class="rule-hero-icon">🎯</div>
+                                <div class="rule-hero-content">
+                                    <h3>게임 목표</h3>
+                                    <p>선택한 등수에 맞춰 커피 당첨자를 정하는 재미있는 레이싱 게임!</p>
+                                </div>
+                            </div>
+
+                            <!-- 게임 진행 단계 -->
+                            <div class="rule-section">
+                                <h4>🏁 게임 진행 방법</h4>
+                                <div class="rule-steps">
+                                    <div class="rule-step">
+                                        <div class="step-number">1</div>
+                                        <div class="step-content">
+                                            <h5>참가 인원 선택</h5>
+                                            <p>2~8명 중 원하는 인원수를 선택하세요</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rule-step">
+                                        <div class="step-number">2</div>
+                                        <div class="step-content">
+                                            <h5>당첨 등수 선택</h5>
+                                            <p>꼴찌, 뒤에서 2등, 3등 또는 기타(복수선택)</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rule-step">
+                                        <div class="step-number">3</div>
+                                        <div class="step-content">
+                                            <h5>참가자 이름 입력</h5>
+                                            <p>각 참가자의 이름을 입력하고 레이스 시작!</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rule-step">
+                                        <div class="step-number">4</div>
+                                        <div class="step-content">
+                                            <h5>레이스 관전</h5>
+                                            <p>1분간 자동 진행되는 레이스를 관전하세요</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rule-step">
+                                        <div class="step-number">5</div>
+                                        <div class="step-content">
+                                            <h5>당첨자 확인</h5>
+                                            <p>결과 발표와 함께 커피 당첨자를 확인!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 게임 특징 -->
+                            <div class="rule-section">
+                                <h4>✨ 게임 특징</h4>
+                                <div class="rule-features">
+                                    <div class="feature-card">
+                                        <span class="feature-icon">⚡</span>
+                                        <div class="feature-text">
+                                            <strong>랜덤 이벤트</strong>
+                                            <small>다양한 스킬로 순위 대변동</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-card">
+                                        <span class="feature-icon">📊</span>
+                                        <div class="feature-text">
+                                            <strong>실시간 순위</strong>
+                                            <small>진행 상황을 실시간 확인</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-card">
+                                        <span class="feature-icon">📱</span>
+                                        <div class="feature-text">
+                                            <strong>모바일 최적화</strong>
+                                            <small>언제 어디서나 간편하게</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-card">
+                                        <span class="feature-icon">🎮</span>
+                                        <div class="feature-text">
+                                            <strong>자동 진행</strong>
+                                            <small>별도 조작 없이 관전만</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    <!-- 스킬정보 모달 -->
+    <div class="modal-overlay" id="skillModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚡ 스킬 정보</h2>
+                <button class="modal-close" onclick="closeModal('skillModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="skill-grid">
+                    <div class="skill-item">
+                        <div class="skill-icon">💣</div>
+                        <div class="skill-info">
+                            <h4>대폭발</h4>
+                            <p>선두 3명이 크게 느려집니다</p>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <div class="skill-icon">⚡</div>
+                        <div class="skill-info">
+                            <h4>번개 공격</h4>
+                            <p>상위권이 마비됩니다</p>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <div class="skill-icon">🚀</div>
+                        <div class="skill-info">
+                            <h4>터보 부스터</h4>
+                            <p>꼴찌가 폭발적으로 빨라집니다</p>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <div class="skill-icon">🌪️</div>
+                        <div class="skill-info">
+                            <h4>대혼란</h4>
+                            <p>모든 순위가 뒤바뀝니다</p>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <div class="skill-icon">🎯</div>
+                        <div class="skill-info">
+                            <h4>저격</h4>
+                            <p>1등과 꼴찌가 자리를 바꿉니다</p>
+                        </div>
+                    </div>
+                    
+                    <div class="skill-item">
+                        <div class="skill-icon">🔥</div>
+                        <div class="skill-info">
+                            <h4>각성</h4>
+                            <p>하위권 전체가 각성합니다</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기타 등수 선택 모달 -->
+    <div class="modal-overlay" id="customRanksModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 당첨 등수 선택</h2>
+                <button class="modal-close" onclick="closeModal('customRanksModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>당첨시킬 등수를 선택해주세요 (복수 선택 가능)</p>
+                <div class="rank-selection-grid" id="rankSelectionGrid">
+                    <!-- 동적으로 생성됩니다 -->
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn cancel-btn" onclick="cancelCustomSelection()">취소</button>
+                    <button class="modal-btn confirm-btn" onclick="confirmCustomSelection()">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="race-container" id="raceContainer">
+        <div class="race-info">
+            <div class="time-display">
+                <div>⏰ 남은 시간: <span id="timeLeft">60.0s</span></div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="race-track" id="raceTrack">
+            <!-- 트랙 요소들이 동적으로 생성됩니다 -->
+        </div>
+    </div>
+    
+    <!-- 이벤트 알림 -->
+    <div class="event-notification" id="eventNotification"></div>
+    
+    <!-- 카운트다운 -->
+    <div class="countdown" id="countdown"></div>
+
+    <!-- 결과 팝업 -->
+    <div class="result-overlay" id="resultOverlay">
+            <div class="result-popup">
+                <!-- 카드뉴스 컨테이너 -->
+                <div class="result-carousel" id="resultCarousel">
+                    <!-- 페이지 1: 당첨 결과 -->
+                    <div class="result-page active" id="winnerPage">
+                        <!--<div class="result-icon" id="resultIcon">☕</div>-->
+                        <div class="result-title" id="resultTitle">커피 당첨!</div>
+                        
+                        <!-- 단일 당첨자 -->
+                        <div class="single-winner" id="singleWinner">
+                            <div class="result-character" id="resultCharacter"></div>
+                            <div class="result-name" id="resultName">플레이어명</div>
+                            <div class="result-subtitle" id="resultSubtitle">커피 한 잔 부탁드려요! ☕</div>
+                        </div>
+                        
+                        <!-- 복수 당첨자 -->
+                        <div class="multiple-winners" id="multipleWinners" style="display: none;">
+                            <div class="winners-grid" id="winnersGrid"></div>
+                            <div class="result-subtitle">커피 한 잔씩 부탁드려요! ☕</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 페이지 2: 전체 순위 -->
+                    <div class="result-page" id="rankingPage">         
+                        <div class="result-title">최종 순위 (스크롤)</div>
+                        <div class="final-rankings" id="finalRankings"></div>
+                    </div>
+                </div>
+                
+                <!-- 페이지 인디케이터 -->
+                <div class="page-indicators">
+                    <span class="indicator active" data-page="0"></span>
+                    <span class="indicator" data-page="1"></span>
+                </div>
+                
+                <!-- 네비게이션 버튼 -->
+                <div class="carousel-nav">
+                    <button class="nav-btn prev-btn" id="prevBtn">‹</button>
+                    <button class="nav-btn next-btn" id="nextBtn">›</button>
+                </div>
+                
+                <div class="result-buttons">
+                    <button class="result-btn" onclick="resetGame()">🔄 다시하기</button>
+                </div>
+            </div>
+        </div>
+
+    <script src="config.js"></script>
+    <script src="player.js"></script>
+    <script src="event-system.js"></script>
+    <script src="race-renderer.js"></script>
+    <script src="game-controller.js"></script>
+    <script src="main.js"></script>
+
+    <div class="footer-copyright">
+    © 2025. <a href="https://www.naver.com" target="_blank" style="text-decoration: underline;">drkim</a> 
+    <span>개인용 및 사내용으로 자유롭게 사용할 수 있으나, 상업적 목적의 이용 및 복제는 금지됩니다.</span>
+</div>
+</body>
+<div class="mobile-pc-banner" id="mobilePcBanner">
+    <div class="banner-content">
+        <div class="banner-text">
+            <span class="banner-icon">🖥️</span>
+            <span class="banner-message">더 즐거운 게임을 위해 PC 환경을 권장합니다</span>
+        </div>
+        <button class="banner-close" onclick="closeMobileBanner()" aria-label="배너 닫기">
+            <span>&times;</span>
+        </button>
+    </div>
+</div>
+</html>

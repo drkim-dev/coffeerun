@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# 사이트맵 위치
+Sitemap: https://coffeerun.kr/sitemap.xml
+
+# 크롤링 차단할 파일들 (없으면 생략)
+# Disallow: /admin/
+# Disallow: /private/
+
+# 검색엔진별 설정
+User-agent: Googlebot
+Allow: /
+
+User-agent: Naverbot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: Daumoa
+Allow: /

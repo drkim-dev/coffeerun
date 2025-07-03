@@ -8,7 +8,7 @@
 
 
 [![개발후기](https://img.shields.io/badge/개발후기-6개월%20여정-blue?style=for-the-badge)](https://drkim-dev.tistory.com/1)
-**[6개월 개발 여정](https://drkim-dev.tistory.com/1)** - 기획부터 배포까지 1인 개발 스토리
+기획부터 배포까지 1인 개발 스토리 - https://drkim-dev.tistory.com/1
 
 <div align="center">
 

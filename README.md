@@ -2,7 +2,8 @@
 
 > **재미있는 커피내기 뽑기게임** - 1분만에 끝나는 공정한 커피 당첨자 선정!
 
-<div align="center">
+
+
 [![Website](https://img.shields.io/badge/🌐_Play_Now-coffeerun.kr-FF6B6B?style=for-the-badge&logo=web&logoColor=white)](https://coffeerun.kr)
 [![Website](https://img.shields.io/badge/🌐_Play_Now-coffeerun.kr-FF6B6B?style=for-the-badge&logo=web&logoColor=white)](https://coffeerun.kr)
 

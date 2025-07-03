@@ -1,6 +1,9 @@
 # 🏁 커피런 (CoffeeRun) ☕
 
 > **재미있는 커피내기 뽑기게임** - 1분만에 끝나는 공정한 커피 당첨자 선정!
+![_94664462-240c-4654-930d-98eca96a5a55](https://github.com/user-attachments/assets/50ecc10d-51f2-4609-b8ee-fe2f5796da9c)
+
+
 
 <div align="center">
 

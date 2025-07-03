@@ -1,19 +1,22 @@
 # 🏁 커피런 (CoffeeRun) ☕
 
 > **재미있는 커피내기 뽑기게임** - 1분만에 끝나는 공정한 커피 당첨자 선정!
-![_94664462-240c-4654-930d-98eca96a5a55](https://github.com/user-attachments/assets/50ecc10d-51f2-4609-b8ee-fe2f5796da9c)
+[![Website](https://img.shields.io/badge/🌐_Play_Now-coffeerun.kr-FF6B6B?style=for-the-badge&logo=web&logoColor=white)](https://coffeerun.kr)
+[![Website](https://img.shields.io/badge/🌐_Play_Now-coffeerun.kr-FF6B6B?style=for-the-badge&logo=web&logoColor=white)](https://coffeerun.kr)
 
 
 
 <div align="center">
 
-[![Website](https://img.shields.io/badge/🌐_Play_Now-coffeerun.kr-FF6B6B?style=for-the-badge&logo=web&logoColor=white)](https://coffeerun.kr)
+![_94664462-240c-4654-930d-98eca96a5a55](https://github.com/user-attachments/assets/50ecc10d-51f2-4609-b8ee-fe2f5796da9c)
 
 ![image](https://github.com/user-attachments/assets/63c1e94b-c59e-4ac7-ba90-2e991c47f64e)
 
 ![image](https://github.com/user-attachments/assets/e07e307f-b5c0-4532-87e3-2f38efee6df5)
 
-![image](https://github.com/user-attachments/assets/810d87c3-a731-4679-92c3-926eb264e698)![image](https://github.com/user-attachments/assets/486bbc70-25e8-49ac-bd9c-10864679fea9)
+![image](https://github.com/user-attachments/assets/810d87c3-a731-4679-92c3-926eb264e698)
+
+![image](https://github.com/user-attachments/assets/486bbc70-25e8-49ac-bd9c-10864679fea9)
 
 </div>
 

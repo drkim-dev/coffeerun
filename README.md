@@ -11,7 +11,8 @@
 
 <div align="center">
 
-![_94664462-240c-4654-930d-98eca96a5a55](https://github.com/user-attachments/assets/50ecc10d-51f2-4609-b8ee-fe2f5796da9c)
+![_64375158-829c-4e3e-ab93-680d05417e8d](https://github.com/user-attachments/assets/3f47cce2-ef53-4e1c-9d63-aafab408f1cd)
+
 
 ![image](https://github.com/user-attachments/assets/63c1e94b-c59e-4ac7-ba90-2e991c47f64e)
 

@@ -42,6 +42,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- 구조화 데이터 (JSON-LD) -->
     <script type="application/ld+json">
@@ -126,7 +127,31 @@
         <button class="start-btn" onclick="startGame()">🚀 레이스 시작!</button>
             <div class="game-info-text">
                 <p>🎮 CoffeeRun v1.0 - 신개념 커피 내기 레이싱 게임 🎮</p>
-                <p>개발자: <a href="https://drkim-dev.tistory.com/1" target="_blank" style="text-decoration: underline;">김준하</a></p>
+                <style>
+                  .blog-link {
+                    color: #feca57;
+                    text-decoration: none; /* 기본 밑줄 제거 */
+                    border-bottom: 1.5px solid #feca57; /* 밑줄 대체 */
+                    padding-bottom: 2px; /* 밑줄과 텍스트 간격 */
+                    transition: all 0.2s ease;
+                  }
+                
+                  .blog-link:hover {
+                    color: #ff6b6b;
+                    border-bottom-color: #ff6b6b;
+                  }
+                
+                  .blog-icon {
+                    margin-left: 5px;
+                    font-size: 0.9em;
+                  }
+                </style>
+                <p>
+                  개발자: 
+                  <a href="https://drkim-dev.tistory.com/1" target="_blank" class="blog-link">
+                    김준하 <i class="fas fa-arrow-up-right-from-square blog-icon"></i>
+                  </a>
+                </p>
                 <p>문의: drkim1239@gmail.com</p>      
             </div>
     </div>

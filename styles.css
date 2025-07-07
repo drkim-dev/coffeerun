@@ -2292,3 +2292,53 @@ body {
         }
     }
 }
+/* 추월 알림 팝업 애니메이션 */
+@keyframes overtakePopup {
+    0% { 
+        transform: translateX(-50%) scale(0.5) translateY(-20px); 
+        opacity: 0; 
+    }
+    15% { 
+        transform: translateX(-50%) scale(1.1) translateY(0px); 
+        opacity: 1; 
+    }
+    30% { 
+        transform: translateX(-50%) scale(1) translateY(0px); 
+        opacity: 1; 
+    }
+    85% { 
+        transform: translateX(-50%) scale(1) translateY(0px); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: translateX(-50%) scale(0.8) translateY(-10px); 
+        opacity: 0; 
+    }
+}
+
+/* 추월 알림 스타일 */
+.overtake-notification {
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    .overtake-notification {
+        top: 8% !important;
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        max-width: 280px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .overtake-notification {
+        top: 5% !important;
+        font-size: 11px !important;
+        padding: 5px 10px !important;
+        max-width: 250px;
+    }
+}

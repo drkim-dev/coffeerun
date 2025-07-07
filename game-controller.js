@@ -1,4 +1,4 @@
-// game-controller.js - 실시간 간격 조정 시스템
+// game-controller.js - 간소화된 게임 컨트롤러 (복잡한 간격 시스템 제거)
 
 class GameController {
     constructor() {
@@ -16,11 +16,8 @@ class GameController {
         this.customRanksSelected = [];
         this.selectionMode = 'single';
         
-        // 🆕 실시간 간격 조정 관련 변수
-        this.spacingCheckInterval = null;
-        this.lastSpacingUpdate = 0;
-        this.lastCrowdingCheck = 0;
-        this.spacingUpdateCount = 0;
+        // 🆕 개인별 추월 쿨다운 관리
+        this.playerOvertakeCooldowns = new Map(); // "김철수" -> 종료시간
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.initialize());
@@ -36,139 +33,300 @@ class GameController {
         this.setupResizeHandler();
     }
 
-    // 🆕 초기 간격 설정
-    initializeSpacing() {
-        console.log('🎯 초기 간격 패턴 설정 중...');
-        
-        this.players.forEach((player, index) => {
-            player.setInitialSpacing(index, this.players.length);
-        });
-        
-        this.players.forEach(player => {
-            console.log(`${player.name}: ${(player.targetSpacing * 100).toFixed(1)}% 간격`);
-        });
-    }
-
-    // 🆕 실시간 간격 체크 시스템 시작
-    startRealtimeSpacingSystem() {
-        this.lastSpacingUpdate = Date.now();
-        
-        // 0.5초마다 간격 상태 체크
-        this.spacingCheckInterval = setInterval(() => {
-            if (this.gameRunning) {
-                this.checkAndAdjustSpacing();
-            }
-        }, 500);
-        
-        console.log('🔄 실시간 간격 조정 시스템 시작');
-    }
-
-    // 🆕 실시간 간격 체크 및 조정
-    checkAndAdjustSpacing() {
-        const currentTime = Date.now();
-        
-        // 스킬 중에는 간격 조정 안함
-        if (this.hasActiveSkills()) {
-            return;
-        }
-        
-        // 과밀 지역 체크 (1초마다만)
-        let needsAdjustment = false;
-        
-        if (currentTime - this.lastCrowdingCheck > 1000) {
-            this.lastCrowdingCheck = currentTime;
+    // 🆕 간단한 밀어내기 시스템 + 추월 시스템 (개인 쿨다운)
+        preventOverlap(players) {
+            if (!CONFIG.OVERLAP_PREVENTION.ENABLED) return;
             
-            // 1. 과밀 지역 체크
-            const crowdedCount = this.countCrowdedPlayers();
-            if (crowdedCount >= 3) {
-                console.log(`🚨 과밀 감지: ${crowdedCount}명이 뭉쳐있음`);
-                needsAdjustment = true;
-            }
+            // 🆕 모바일 환경 감지하여 간격 조정
+            const isMobile = window.innerWidth <= 768;
+            const PUSH_DISTANCE = isMobile ? 
+                CONFIG.OVERLAP_PREVENTION.PUSH_DISTANCE * 1.67 : // 모바일: 1.5% × 1.67 = 2.5%
+                CONFIG.OVERLAP_PREVENTION.PUSH_DISTANCE;         // PC: 1.5% 유지
             
-            // 2. 너무 오래 같은 패턴 체크 (8초)
-            const timeSinceLastUpdate = currentTime - this.lastSpacingUpdate;
-            if (timeSinceLastUpdate > 8000) {
-                console.log(`⏰ 패턴 변경 시간: ${(timeSinceLastUpdate/1000).toFixed(1)}초 경과`);
-                needsAdjustment = true;
-            }
+            const PUSH_FORCE = isMobile ?
+                CONFIG.OVERLAP_PREVENTION.PUSH_FORCE * 1.5 :    // 모바일: 밀어내는 힘도 증가
+                CONFIG.OVERLAP_PREVENTION.PUSH_FORCE;            // PC: 기본값 유지
             
-            // 3. 너무 자주 조정 방지 (최소 3초 간격)
-            const minInterval = CONFIG.REALTIME_SPACING.MIN_ADJUSTMENT_INTERVAL;
-            if (timeSinceLastUpdate < minInterval) {
-                console.log(`🚫 간격 조정 대기 중: ${(minInterval - timeSinceLastUpdate)/1000}초 남음`);
-                needsAdjustment = false;
-            }
-        }
-        
-        if (needsAdjustment) {
-            this.executeSpacingAdjustment();
-        }
-    }
-
-    // 🆕 과밀 상태 감지
-    countCrowdedPlayers() {
-        const activePlayers = this.players.filter(p => !p.finished);
-        if (activePlayers.length < 2) return 0;   // 2명 미만이면 과밀 체크 불필요
-        
-        let crowdedCount = 0; 
-        const CROWDING_THRESHOLD = 0.01; // 51 이내면 뭉쳐있다고 판단
-        
-        for (let i = 0; i < activePlayers.length; i++) {
-            let nearbyCount = 1; // 자기 자신 포함
+            const currentTime = Date.now();
             
-            for (let j = 0; j < activePlayers.length; j++) {
-                if (i !== j) {
-                    const distance = Math.abs(activePlayers[i].progress - activePlayers[j].progress);
-                    if (distance <= CROWDING_THRESHOLD) {
-                        nearbyCount++;
+            for (let i = 0; i < players.length; i++) {
+                for (let j = i + 1; j < players.length; j++) {
+                    const p1 = players[i];
+                    const p2 = players[j];
+                    
+                    // 스킬 중이거나 완주했으면 패스
+                    if (p1.allowOverlap || p2.allowOverlap) continue;
+                    if (p1.finished || p2.finished) continue;
+                    
+                    // 추월 중인 플레이어는 밀어내기 제외
+                    if (p1.isOvertaking || p2.isOvertaking) continue;
+                    
+                    const distance = Math.abs(p1.progress - p2.progress);
+                    
+                    if (distance < PUSH_DISTANCE) { // 🆕 동적으로 조정된 간격 사용
+                        // 앞사람/뒷사람 정의
+                        const frontPlayer = p1.progress > p2.progress ? p1 : p2;
+                        const backPlayer = p1.progress > p2.progress ? p2 : p1;
+                        
+                        // 뒷사람의 추월 쿨다운 체크
+                        const backPlayerCooldown = this.playerOvertakeCooldowns.get(backPlayer.name) || 0;
+                        
+                        // 뒷사람이 더 빠르고 개인 쿨다운이 끝났으면 추월 허용
+                        if (backPlayer.baseSpeed > frontPlayer.baseSpeed && currentTime > backPlayerCooldown) {
+                            // 추월 완료까지 속도 2배 증가!
+                            backPlayer.isOvertaking = true;
+                            backPlayer.overtakeStartTime = currentTime;
+                            // 🆕 모바일에서는 추월 목표도 더 크게
+                            const overtakeDistance = isMobile ? 0.04 : 0.03; // 모바일: 4%, PC: 3%
+                            backPlayer.overtakeTarget = frontPlayer.progress + overtakeDistance;
+                            
+                            console.log(`🏃‍♂️ ${backPlayer.name}이 ${frontPlayer.name}을 추월 시작! (${isMobile ? '모바일' : 'PC'} 모드)`);
+                            
+                            // 추월한 사람에게 2초 개인 쿨다운 설정
+                            this.playerOvertakeCooldowns.set(backPlayer.name, currentTime + 2000);
+                            
+                        } else {
+                            // 간격 유지 - 밀어내기 (🆕 동적으로 조정된 힘 사용)
+                            frontPlayer.progress += PUSH_FORCE;
+                            backPlayer.progress -= PUSH_FORCE;
+                            
+                            // 진행률이 음수가 되지 않도록 제한
+                            p1.progress = Math.max(0, p1.progress);
+                            p2.progress = Math.max(0, p2.progress);
+                        }
+                        
+                        // 디버그 로그
+                        if (CONFIG.DEBUG.SHOW_OVERLAP_PREVENTION) {
+                            console.log(`${isMobile ? '[모바일]' : '[PC]'} 처리: ${p1.name} vs ${p2.name}, 거리: ${distance.toFixed(4)}, 기준: ${PUSH_DISTANCE.toFixed(3)}`);
+                        }
                     }
                 }
             }
             
-            if (nearbyCount >= 2) { //
-                crowdedCount = Math.max(crowdedCount, nearbyCount);
+            // 만료된 개인 쿨다운 정리
+            for (const [playerName, endTime] of this.playerOvertakeCooldowns.entries()) {
+                if (currentTime > endTime) {
+                    this.playerOvertakeCooldowns.delete(playerName);
+                }
             }
         }
-        
-        return crowdedCount;
-    }
 
-    // 🆕 활성 스킬 체크 (스킬 중에는 간격 조정 안함)
-    hasActiveSkills() {
-        // 알람이 표시 중이면 스킬 활성화 상태로 판단
-        const notification = document.getElementById('eventNotification');
-        const hasNotification = notification && notification.style.display === 'block';
-        
-        // 플레이어 중 추월 허용 상태인 사람이 있으면 스킬 활성화
-        const hasOverlapPlayers = this.players.some(p => p.allowOverlap && !p.finished);
-        
-        return hasNotification || hasOverlapPlayers;
-    }
+    // 🆕 추월 알림 삭제 (더 이상 사용 안함)
+    // showOvertakeNotification() 함수 제거
 
-    // 🆕 간격 조정 실행
-    executeSpacingAdjustment() {
-        this.spacingUpdateCount++;
-        console.log(`🔄 간격 재조정 실행 #${this.spacingUpdateCount}`);
+    async startGame() {
+        const inputs = document.querySelectorAll('.player-input:not(.hidden) input');
+        this.players = [];
         
-        this.players.forEach(player => {
-            if (!player.finished) {
-                player.redistributeSpacing(this.players);
+        inputs.forEach((input, index) => {
+            if (input.value.trim()) {
+                this.players.push(new Player(
+                    input.value.trim(),
+                    this.shuffledLottieFiles[index],
+                    index
+                ));
             }
         });
         
-        this.lastSpacingUpdate = Date.now();
-    }
-
-    // 🆕 실시간 간격 시스템 정리
-    stopRealtimeSpacingSystem() {
-        if (this.spacingCheckInterval) {
-            clearInterval(this.spacingCheckInterval);
-            this.spacingCheckInterval = null;
-            console.log('🛑 실시간 간격 조정 시스템 종료');
+        if (this.players.length < 2) {
+            alert('최소 2명 이상 참가해야 합니다!');
+            return;
         }
+        
+        if (this.selectionMode === 'custom' && this.customRanksSelected.length === 0) {
+            alert('당첨 등수를 최소 1개 이상 선택해주세요!');
+            return;
+        }
+        
+        document.querySelector('.setup-container').style.display = 'none';
+        document.getElementById('raceContainer').style.display = 'block';
+        
+        this.renderer.setupRaceTrack(this.players);
+        
+        await this.showCountdown();
+        this.startRace();
     }
 
-    // 기존 함수들...
+    async showCountdown() {
+        for (let i = 3; i > 0; i--) {
+            this.renderer.showCountdown(i);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        this.renderer.showCountdown('START!');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    startRace() {
+        this.gameRunning = true;
+        this.raceStartTime = Date.now();
+        this.lastFrameTime = this.raceStartTime;
+        this.eventSystem.reset();
+        
+        this.raceLoop();
+        this.scheduleEvents();
+        
+        console.log('🏁 레이스 시작! (간소화된 시스템)');
+    }
+
+    // 🆕 간소화된 레이스 루프
+    raceLoop() {
+        if (!this.gameRunning) return;
+        
+        const currentTime = Date.now();
+        const deltaTime = currentTime - this.lastFrameTime;
+        const elapsed = currentTime - this.raceStartTime;
+        const progress = (elapsed / CONFIG.RACE_DURATION) * 100;
+        const timeLeft = Math.max(0, (CONFIG.RACE_DURATION - elapsed) / 1000);
+        
+        this.lastFrameTime = currentTime;
+        
+        // UI 업데이트
+        this.renderer.updateProgress(progress);
+        this.renderer.updateTimeDisplay(timeLeft);
+        this.renderer.updateRankings(this.players);
+        
+        // 플레이어 위치 업데이트
+        this.players.forEach(player => {
+            player.updatePosition(deltaTime, this.players, this.renderer.trackPath);
+        });
+        
+        // 🆕 간단한 밀어내기 시스템 (매 프레임마다)
+        this.preventOverlap(this.players);
+        
+        // 시각적 업데이트
+        this.players.forEach(player => {
+            player.updateVisual(this.renderer.trackPath);
+        });
+        
+        // 승부 체크
+        const finishedPlayers = this.players.filter(p => p.finished);
+        if (finishedPlayers.length === this.players.length || elapsed >= CONFIG.RACE_DURATION) {
+            this.endRace();
+            return;
+        }
+        
+        requestAnimationFrame(() => this.raceLoop());
+    }
+
+    scheduleEvents() {
+        CONFIG.EVENT_TIMES.forEach(eventTime => {
+            setTimeout(() => {
+                if (this.gameRunning) {
+                    this.eventSystem.triggerRandomEvent(this.players);
+                }
+            }, eventTime);
+        });
+    }
+
+    endRace() {
+        this.gameRunning = false;
+        
+        // 미완주 플레이어 처리
+        this.players.forEach(player => {
+            if (!player.finished) {
+                player.finished = true;
+                player.finishTime = Date.now() + (1 - player.progress) * 1000;
+            }
+        });
+        
+        // 최종 순위 계산 (progress 기준)
+        const sortedPlayers = [...this.players].sort((a, b) => {
+            if (a.finished && b.finished) {
+                return a.finishTime - b.finishTime;
+            }
+            if (a.finished) return -1;
+            if (b.finished) return 1;
+            return b.progress - a.progress;
+        });
+        
+        // 당첨자 결정 로직
+        let winners = [];
+        
+        if (this.selectionMode === 'single') {
+            const loserIndex = sortedPlayers.length - this.selectedLoserRank;
+            const winner = sortedPlayers[Math.max(0, loserIndex)];
+            if (winner) {
+                winners.push({
+                    player: winner,
+                    rank: this.selectedLoserRank === 1 ? '꼴찌' : `뒤에서 ${this.selectedLoserRank}등`
+                });
+            }
+        } else {
+            this.customRanksSelected.forEach(rank => {
+                const playerIndex = rank - 1;
+                if (playerIndex < sortedPlayers.length) {
+                    const player = sortedPlayers[playerIndex];
+                    let rankText;
+                    if (rank === 1) rankText = '1등';
+                    else if (rank === sortedPlayers.length) rankText = '꼴찌';
+                    else rankText = `${rank}등`;
+                    
+                    winners.push({
+                        player: player,
+                        rank: rankText
+                    });
+                }
+            });
+        }
+        
+        setTimeout(() => {
+            this.renderer.showModernResults(winners, this.selectionMode);
+        }, 1000);
+        
+        console.log('🏁 레이스 종료!');
+    }
+
+    resetGame() {
+        this.gameRunning = false;
+        this.players = [];
+        this.eventSystem.reset();
+        
+        // 🆕 개인 추월 쿨다운 초기화
+        this.playerOvertakeCooldowns.clear();
+        
+        // 기타 선택 초기화
+        this.customRanksSelected = [];
+        this.selectionMode = 'single';
+        
+        document.getElementById('resultOverlay').style.display = 'none';
+        
+        document.querySelector('.setup-container').style.display = 'block';
+        document.getElementById('raceContainer').style.display = 'none';
+        
+        const customSelector = document.getElementById('customRankSelector');
+        if (customSelector) {
+            customSelector.style.display = 'none';
+        }
+        
+        document.querySelectorAll('.rank-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.rank-btn[data-rank="1"]').classList.add('active');
+        this.selectedLoserRank = 1;
+        
+        const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
+        if (customBtn) {
+            customBtn.textContent = '기타';
+        }
+        
+        document.querySelectorAll('.player-input input').forEach(input => {
+            input.value = '';
+        });
+        
+        const progressFill = document.getElementById('progressFill');
+        const timeLeft = document.getElementById('timeLeft');
+        
+        if (progressFill) progressFill.style.width = '0%';
+        if (timeLeft) timeLeft.textContent = '60.0s';
+        
+        this.updatePlayerInputs();
+        
+        console.log('🔄 게임 리셋 완료 (간소화된 시스템)');
+    }
+
+    // 🗑️ 복잡한 간격 관련 함수들 모두 제거
+    // initializeSpacing, startRealtimeSpacingSystem, checkAndAdjustSpacing,
+    // countCrowdedPlayers, executeSpacingAdjustment, stopRealtimeSpacingSystem 등
+
+    // 기존 UI 관련 함수들 (변경 없음)
     initializeUI() {
         console.log('Available Lottie files:', CONFIG.LOTTIE_FILES);
         this.shuffledLottieFiles = [...CONFIG.LOTTIE_FILES].sort(() => Math.random() - 0.5);
@@ -225,219 +383,6 @@ class GameController {
         });
     }
 
-    async startGame() {
-        const inputs = document.querySelectorAll('.player-input:not(.hidden) input');
-        this.players = [];
-        
-        inputs.forEach((input, index) => {
-            if (input.value.trim()) {
-                this.players.push(new Player(
-                    input.value.trim(),
-                    this.shuffledLottieFiles[index],
-                    index
-                ));
-            }
-        });
-        
-        if (this.players.length < 2) {
-            alert('최소 2명 이상 참가해야 합니다!');
-            return;
-        }
-        
-        if (this.selectionMode === 'custom' && this.customRanksSelected.length === 0) {
-            alert('당첨 등수를 최소 1개 이상 선택해주세요!');
-            return;
-        }
-        
-        document.querySelector('.setup-container').style.display = 'none';
-        document.getElementById('raceContainer').style.display = 'block';
-        
-        this.renderer.setupRaceTrack(this.players);
-        
-        // 간격 시스템 초기화
-        this.initializeSpacing();
-        
-        await this.showCountdown();
-        
-        this.startRace();
-    }
-
-    async showCountdown() {
-        for (let i = 3; i > 0; i--) {
-            this.renderer.showCountdown(i);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        this.renderer.showCountdown('START!');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    startRace() {
-        this.gameRunning = true;
-        this.raceStartTime = Date.now();
-        this.lastFrameTime = this.raceStartTime;
-        this.eventSystem.reset();
-        
-        // 🆕 실시간 간격 조정 시스템 시작
-        this.startRealtimeSpacingSystem();
-        
-        this.raceLoop();
-        this.scheduleEvents();
-    }
-
-    raceLoop() {
-        if (!this.gameRunning) return;
-        
-        const currentTime = Date.now();
-        const deltaTime = currentTime - this.lastFrameTime;
-        const elapsed = currentTime - this.raceStartTime;
-        const progress = (elapsed / CONFIG.RACE_DURATION) * 100;
-        const timeLeft = Math.max(0, (CONFIG.RACE_DURATION - elapsed) / 1000);
-        
-        this.lastFrameTime = currentTime;
-        
-        // UI 업데이트
-        this.renderer.updateProgress(progress);
-        this.renderer.updateTimeDisplay(timeLeft);
-        this.renderer.updateRankings(this.players);
-        
-        // 플레이어 위치 업데이트
-        this.players.forEach(player => {
-            player.updatePosition(deltaTime, this.players, this.renderer.trackPath);
-            player.updateVisual(this.renderer.trackPath);
-        });
-        
-        // 승부 체크
-        const finishedPlayers = this.players.filter(p => p.finished);
-        if (finishedPlayers.length === this.players.length || elapsed >= CONFIG.RACE_DURATION) {
-            this.endRace();
-            return;
-        }
-        
-        requestAnimationFrame(() => this.raceLoop());
-    }
-
-    scheduleEvents() {
-        CONFIG.EVENT_TIMES.forEach(eventTime => {
-            setTimeout(() => {
-                if (this.gameRunning) {
-                    this.eventSystem.triggerRandomEvent(this.players);
-                }
-            }, eventTime);
-        });
-        
-        this.scheduleSpecialSkills();
-    }
-
-    scheduleSpecialSkills() {
-        // 기존 특별 스킬 스케줄링 코드...
-    }
-
-    endRace() {
-        this.gameRunning = false;
-        
-        // 🆕 실시간 간격 조정 시스템 정리
-        this.stopRealtimeSpacingSystem();
-        
-        // 미완주 플레이어 처리
-        this.players.forEach(player => {
-            if (!player.finished) {
-                player.finished = true;
-                player.finishTime = Date.now() + (1 - player.progress) * 1000;
-            }
-        });
-        
-        // 최종 순위 계산 (progress 기준)
-        const sortedPlayers = [...this.players].sort((a, b) => {
-            if (a.finished && b.finished) {
-                return a.finishTime - b.finishTime;
-            }
-            if (a.finished) return -1;
-            if (b.finished) return 1;
-            return b.progress - a.progress;
-        });
-        
-        // 당첨자 결정 로직
-        let winners = [];
-        
-        if (this.selectionMode === 'single') {
-            const loserIndex = sortedPlayers.length - this.selectedLoserRank;
-            const winner = sortedPlayers[Math.max(0, loserIndex)];
-            if (winner) {
-                winners.push({
-                    player: winner,
-                    rank: this.selectedLoserRank === 1 ? '꼴찌' : `뒤에서 ${this.selectedLoserRank}등`
-                });
-            }
-        } else {
-            this.customRanksSelected.forEach(rank => {
-                const playerIndex = rank - 1;
-                if (playerIndex < sortedPlayers.length) {
-                    const player = sortedPlayers[playerIndex];
-                    let rankText;
-                    if (rank === 1) rankText = '1등';
-                    else if (rank === sortedPlayers.length) rankText = '꼴찌';
-                    else rankText = `${rank}등`;
-                    
-                    winners.push({
-                        player: player,
-                        rank: rankText
-                    });
-                }
-            });
-        }
-        
-        setTimeout(() => {
-            this.renderer.showModernResults(winners, this.selectionMode);
-        }, 1000);
-    }
-
-    resetGame() {
-        this.gameRunning = false;
-        this.players = [];
-        this.eventSystem.reset();
-        
-        // 🆕 실시간 간격 조정 시스템 정리
-        this.stopRealtimeSpacingSystem();
-        
-        // 기타 선택 초기화
-        this.customRanksSelected = [];
-        this.selectionMode = 'single';
-        
-        document.getElementById('resultOverlay').style.display = 'none';
-        
-        document.querySelector('.setup-container').style.display = 'block';
-        document.getElementById('raceContainer').style.display = 'none';
-        
-        const customSelector = document.getElementById('customRankSelector');
-        if (customSelector) {
-            customSelector.style.display = 'none';
-        }
-        
-        document.querySelectorAll('.rank-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.rank-btn[data-rank="1"]').classList.add('active');
-        this.selectedLoserRank = 1;
-        
-        const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
-        if (customBtn) {
-            customBtn.textContent = '기타';
-        }
-        
-        document.querySelectorAll('.player-input input').forEach(input => {
-            input.value = '';
-        });
-        
-        const progressFill = document.getElementById('progressFill');
-        const timeLeft = document.getElementById('timeLeft');
-        
-        if (progressFill) progressFill.style.width = '0%';
-        if (timeLeft) timeLeft.textContent = '60.0s';
-        
-        this.updatePlayerInputs();
-        
-        console.log('🔄 게임 리셋 완료');
-    }
-
-    // 나머지 기존 함수들...
     openCustomRanksModal() {
         this.updateRankSelectionGrid();
         const modal = document.getElementById('customRanksModal');

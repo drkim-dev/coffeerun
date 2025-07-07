@@ -1,14 +1,12 @@
-// player.js - 간격 확대 & 긴장감 강화 버전
+// player.js - 자연스러운 속도 조정 간격 시스템
+
 class Player {
     constructor(name, lottieFile, index) {
         this.name = name;
         this.lottieFile = lottieFile;
         this.index = index;
         
-        // 🎯 초기 위치를 간격을 두고 시작
         this.progress = this.getInitialPosition(index); 
-        
-        // 🚀 개인별 고유한 기본 속도 (격차 확대)
         this.baseSpeed = this.generateUniqueSpeed();
         
         this.element = null;
@@ -20,65 +18,85 @@ class Player {
         this.finished = false;
         this.finishTime = 0;
         
-        // 🎯 개인 특성 적당히 (너무 큰 격차 방지)
-        this.personalMultiplier = 0.8 + Math.random() * 0.4; // 0.7~1.3 → 0.8~1.2 (격차 줄임)
-        this.lastRandomSpeedUpdate = 0;
-        this.consistencyFactor = Math.random(); // 일관성 vs 변동성
+        // 🆕 속도 조정 기반 간격 시스템
+        this.allowOverlap = false;           // 추월 허용 여부 (스킬 중에만 true)
+        this.targetSpacing = 0;              // 목표 간격
+        this.spacingSpeedMultiplier = 1.0;   // 간격 조정용 속도 배수
+        this.lastSpacingCheck = 0;           // 마지막 간격 체크 시간
+        
+        this.personalMultiplier = 0.8 + Math.random() * 0.4; 
+        this.lastRandomSpeedUpdate = 0; //
+        this.consistencyFactor = Math.random();
     }
 
-    // 🎯 초기 위치 간격 설정
-    getInitialPosition(index) {
-        if (!CONFIG.STARTING_POSITIONS) return 0;
+    // 🆕 초기 목표 간격 설정
+    setInitialSpacing(playerIndex, totalPlayers) {
+        // 플레이어별로 목표 간격 설정 (앞 플레이어와의 거리)
+        const spacingOptions = [0.02, 0.04, 0.06, 0.08, 0.10, 0.12]; // 2%~12%
+        this.targetSpacing = spacingOptions[Math.floor(Math.random() * spacingOptions.length)]; 
         
-        const baseSpread = CONFIG.STARTING_POSITIONS.SPREAD_FACTOR;
-        const randomSpread = CONFIG.STARTING_POSITIONS.RANDOM_SPREAD;
-        
-        // 인덱스별로 약간씩 뒤에서 시작 + 랜덤 요소
-        const baseOffset = index * baseSpread;
-        const randomOffset = (Math.random() - 0.5) * randomSpread;
-        
-        return Math.max(0, -(baseOffset + randomOffset));
+        console.log(`${this.name} 목표 간격: ${(this.targetSpacing * 100).toFixed(1)}%`); 
     }
 
-    // 🚀 개인별 고유 속도 생성 (격차 적당히)
-    generateUniqueSpeed() {
-        const min = CONFIG.SPEED.BASE_MIN;
-        const max = CONFIG.SPEED.BASE_MAX;
-        const range = max - min;
+    // 🆕 주기적으로 새로운 목표 간격 설정 (5-7초마다)
+    redistributeSpacing(allPlayers) {
+        if (this.allowOverlap) return; // 스킬 중에는 간격 조정 안함
         
-        // 플레이어별로 적당한 속도 범위 할당
-        const personalRange = range * (0.7 + Math.random() * 0.6); // 격차 적당히
-        const personalMin = min + (Math.random() * (range - personalRange));
+        const spacingOptions = [0.02, 0.04, 0.06, 0.08, 0.10, 0.12];
+        this.targetSpacing = spacingOptions[Math.floor(Math.random() * spacingOptions.length)];
         
-        return personalMin + Math.random() * personalRange;
+        console.log(`${this.name} 새로운 목표 간격: ${(this.targetSpacing * 100).toFixed(1)}%`);
     }
 
-    updateRandomSpeed(allPlayers = []) {
-        const ranking = this.getRanking(allPlayers);
-        const totalPlayers = allPlayers.filter(p => !p.finished).length;
-        
-        // 🎯 일관성 vs 변동성 개인 특성 반영
-        const stabilityFactor = this.consistencyFactor > 0.7 ? 1.2 : 0.8;
-        
-        // 🚀 기본 랜덤 속도를 개인 특성으로 조정
-        const baseRandom = 0.8 + Math.random() * 0.4;
-        this.randomSpeedMultiplier = baseRandom * this.personalMultiplier * stabilityFactor;
-        
-        // 순위별 조정 강화 (격차 줄이기)
-        if (ranking === totalPlayers) {
-            this.randomSpeedMultiplier *= 1.2; // 1.1 → 1.2 (꼴찌 더 도움)
-        } else if (ranking === totalPlayers - 1) {
-            this.randomSpeedMultiplier *= 1.1; // 뒤에서 2등도 도움
-        } else if (ranking === 1) {
-            this.randomSpeedMultiplier *= 0.9; // 0.95 → 0.9 (1등 더 페널티)
-        } else if (ranking === 2) {
-            this.randomSpeedMultiplier *= 0.95; // 2등도 약간 페널티
+    // 🆕 자연스러운 속도 조정으로 간격 유지
+    adjustSpacingSpeed(allPlayers) {
+        if (this.allowOverlap || this.finished) {
+            // 스킬 중이거나 완주했으면 간격 조정 안함
+            this.spacingSpeedMultiplier = 1.0;
+            return;
         }
-    }
-    
-    getLeaderProgress(allPlayers) {
+
+        const currentTime = Date.now();
+        // 너무 자주 체크하지 않음 (0.5초마다)
+        if (currentTime - this.lastSpacingCheck < 500) return;
+        this.lastSpacingCheck = currentTime;
+
+        // 현재 순위 기준으로 정렬 (진행률 기준)
         const activePlayers = allPlayers.filter(p => !p.finished);
-        return Math.max(...activePlayers.map(p => p.progress));
+        const sortedByProgress = activePlayers.sort((a, b) => b.progress - a.progress);
+        const myRankIndex = sortedByProgress.findIndex(p => p === this);
+        
+        if (myRankIndex === 0) {
+            // 1등은 간격 조정 안함
+            this.spacingSpeedMultiplier = 1.0;
+            return;
+        }
+
+        // 바로 앞 플레이어와의 거리 계산
+        const playerAhead = sortedByProgress[myRankIndex - 1];
+        const currentDistance = playerAhead.progress - this.progress;
+        
+        // 🎯 목표 간격과 현재 간격 비교
+        const distanceDifference = currentDistance - this.targetSpacing;
+        
+        if (Math.abs(distanceDifference) < 0.01) {
+            // 목표 간격에 거의 도달했으면 조정 안함
+            this.spacingSpeedMultiplier = 1.0;
+        } else if (distanceDifference > 0) {
+            // 너무 멀리 떨어져 있음 → 살짝 빨라지기
+            this.spacingSpeedMultiplier = 1.0 + Math.min(distanceDifference * 2, 0.15); // 최대 15% 증가
+        } else {
+            // 너무 가까이 붙어있음 → 살짝 느려지기
+            this.spacingSpeedMultiplier = 1.0 + Math.max(distanceDifference * 2, -0.25); // 최대 15% 감소
+        }
+        
+        // 🚫 뒤로 가는 것 방지 (최소 50% 속도는 유지)
+        this.spacingSpeedMultiplier = Math.max(0.5, this.spacingSpeedMultiplier);
+        
+        // 디버그 로그 (너무 많이 나오지 않게 가끔만)
+        if (Math.random() < 0.05) { // 5% 확률로만 로그
+            console.log(`${this.name}: 거리차=${(distanceDifference*100).toFixed(1)}%, 속도배수=${this.spacingSpeedMultiplier.toFixed(2)}`);
+        }
     }
 
     updatePosition(deltaTime, allPlayers = [], trackPath) {
@@ -90,44 +108,34 @@ class Player {
             this.lastRandomSpeedUpdate = currentTime;
         }
 
+        // 🆕 간격 조정 속도 계산
+        this.adjustSpacingSpeed(allPlayers);
+
         let speed = this.baseSpeed;
         
-        // 🎯 캐치업 시스템 대폭 약화 (격차 유지)
-        if (allPlayers.length > 0) {
+        // 캐치업 시스템 (스킬 중일 때만 적용)
+        if (allPlayers.length > 0 && this.allowOverlap) {
             const ranking = this.getRanking(allPlayers);
             const totalPlayers = allPlayers.filter(p => !p.finished).length;
-            const leader = this.getLeaderProgress(allPlayers);
-            const progressGap = leader - this.progress;
             
-            // 캐치업은 적당한 격차일 때부터 (25% 이상)
-            if (progressGap >= CONFIG.CATCHUP_SYSTEM.MIN_CATCHUP_DISTANCE) {
-                const gapRatio = Math.min(progressGap / CONFIG.CATCHUP_SYSTEM.MAX_CATCHUP_DISTANCE, 1.0);
-                
-                if (ranking === totalPlayers) {
-                    // 꼴찌는 적당한 부스트
-                    const boost = 1.0 + (CONFIG.CATCHUP_SYSTEM.LAST_PLACE_BOOST - 1.0) * gapRatio;
-                    speed *= boost;
-                } else if (ranking === totalPlayers - 1) {
-                    // 뒤에서 2등도 도움
-                    const boost = 1.0 + (CONFIG.CATCHUP_SYSTEM.SECOND_LAST_BOOST - 1.0) * gapRatio;
-                    speed *= boost;
-                }
-            }
-            
-            // 상위권 페널티도 최소화
-            if (ranking === 1) {
-                speed *= CONFIG.CATCHUP_SYSTEM.LEADER_PENALTY;
-            } else if (ranking === 2) {
-                speed *= CONFIG.CATCHUP_SYSTEM.SECOND_PENALTY;
+            if (ranking === totalPlayers) {
+                speed *= 1.3; // 꼴찌 30% 부스트 (스킬 중에만)
+            } else if (ranking === 1) {
+                speed *= 0.9; // 1등 10% 페널티 (스킬 중에만)
             }
         }
         
         // 상태별 효과
-        if (this.boosted) speed *= 2.8;        // 부스터는 더 강하게
-        if (this.reversed) speed *= -1.2;      // 역주행도 더 강하게
+        if (this.boosted) speed *= 2.8;
+        if (this.reversed) speed *= -1.2;
         
+        // 랜덤 속도
         speed *= this.randomSpeedMultiplier;
         
+        // 🆕 간격 조정 속도 적용 (가장 중요!)
+        speed *= this.spacingSpeedMultiplier;
+        
+        // 진행률 업데이트
         this.progress += speed * (deltaTime / 1000);
         this.progress = Math.max(0, this.progress);
         
@@ -139,6 +147,83 @@ class Player {
         }
     }
 
+    // 🆕 스킬 적용 함수들 - 추월 허용 설정
+    applyStun(duration = 3500) {
+        this.stunned = true;
+        this.allowOverlap = true; // 스턴 중에는 추월당할 수 있음
+        
+        setTimeout(() => {
+            this.stunned = false;
+            this.allowOverlap = false; // 스킬 종료시 간격 조정 복구
+        }, duration);
+    }
+
+    applyBoost(duration = 4500) {
+        this.boosted = true;
+        this.allowOverlap = true; // 부스트 중에는 추월 가능
+        
+        setTimeout(() => {
+            this.boosted = false;
+            this.allowOverlap = false; // 스킬 종료시 간격 조정 복구
+        }, duration);
+    }
+
+    applyReverse(duration = 4000) {
+        this.reversed = true;
+        this.allowOverlap = true;
+        
+        setTimeout(() => {
+            this.reversed = false;
+            this.allowOverlap = false;
+        }, duration);
+    }
+
+    // 기존 함수들...
+    getInitialPosition(index) {
+        if (!CONFIG.STARTING_POSITIONS) return 0;
+        
+        const baseSpread = CONFIG.STARTING_POSITIONS.SPREAD_FACTOR;
+        const randomSpread = CONFIG.STARTING_POSITIONS.RANDOM_SPREAD;
+        
+        const baseOffset = index * baseSpread;
+        const randomOffset = (Math.random() - 0.5) * randomSpread;
+        
+        return Math.max(0, -(baseOffset + randomOffset));
+    }
+
+    generateUniqueSpeed() {
+        const min = CONFIG.SPEED.BASE_MIN;
+        const max = CONFIG.SPEED.BASE_MAX;
+        const range = max - min;
+        
+        const personalRange = range * (0.7 + Math.random() * 0.6);
+        const personalMin = min + (Math.random() * (range - personalRange));
+        
+        return personalMin + Math.random() * personalRange;
+    }
+
+    updateRandomSpeed(allPlayers = []) {
+        const ranking = this.getRanking(allPlayers);
+        const totalPlayers = allPlayers.filter(p => !p.finished).length;
+        
+        const stabilityFactor = this.consistencyFactor > 0.7 ? 1.2 : 0.8;
+        const baseRandom = 0.8 + Math.random() * 0.4;
+        this.randomSpeedMultiplier = baseRandom * this.personalMultiplier * stabilityFactor;
+        
+        // 스킬 중일 때만 순위별 조정
+        if (this.allowOverlap) {
+            if (ranking === totalPlayers) {
+                this.randomSpeedMultiplier *= 1.2;
+            } else if (ranking === totalPlayers - 1) {
+                this.randomSpeedMultiplier *= 1.1;
+            } else if (ranking === 1) {
+                this.randomSpeedMultiplier *= 0.9;
+            } else if (ranking === 2) {
+                this.randomSpeedMultiplier *= 0.95;
+            }
+        }
+    }
+    
     getRanking(allPlayers) {
         const activePlayers = allPlayers.filter(p => !p.finished);
         const sorted = activePlayers.sort((a, b) => b.progress - a.progress);
@@ -151,28 +236,24 @@ class Player {
         let x, y, angle = 0;
         
         if (normalizedProgress < trackPath.topRatio) {
-            // 상단 직선
             const segmentProgress = normalizedProgress / trackPath.topRatio;
             x = trackPath.margin + (segmentProgress * trackPath.width);
             y = trackPath.margin;
             angle = 0;
         } 
         else if (normalizedProgress < trackPath.topRatio + trackPath.rightRatio) {
-            // 우측 직선
             const segmentProgress = (normalizedProgress - trackPath.topRatio) / trackPath.rightRatio;
             x = trackPath.margin + trackPath.width;
             y = trackPath.margin + (segmentProgress * trackPath.height);
             angle = 90;
         }
         else if (normalizedProgress < trackPath.topRatio + trackPath.rightRatio + trackPath.bottomRatio) {
-            // 하단 직선
             const segmentProgress = (normalizedProgress - trackPath.topRatio - trackPath.rightRatio) / trackPath.bottomRatio;
             x = trackPath.margin + trackPath.width - (segmentProgress * trackPath.width);
             y = trackPath.margin + trackPath.height;
             angle = 180;
         }
         else {
-            // 좌측 직선
             const segmentProgress = (normalizedProgress - trackPath.topRatio - trackPath.rightRatio - trackPath.bottomRatio) / trackPath.leftRatio;
             x = trackPath.margin;
             y = trackPath.margin + trackPath.height - (segmentProgress * trackPath.height);
@@ -188,7 +269,6 @@ class Player {
         const pos = this.getPosition(trackPath);
         const vehicleSize = Math.min(window.innerWidth, window.innerHeight) * CONFIG.TRACK.VEHICLE_SIZE_RATIO;
         
-        // Lottie 이미지 상단 공백 보정
         const offset = vehicleSize * 0.35;
         let left = pos.x - vehicleSize/2;
         let top = pos.y - vehicleSize/2;
@@ -204,13 +284,11 @@ class Player {
         this.element.style.left = left + 'px';
         this.element.style.top = top + 'px';
         
-        // 중심점 업데이트
         if (this.centerDot) {
             this.centerDot.style.left = (pos.x - 2) + 'px';
             this.centerDot.style.top = (pos.y - 2) + 'px';
         }
         
-        // 방향 설정
         let baseTransform = '';
         if (pos.angle === 90) {
             baseTransform = 'rotate(90deg)';
@@ -222,12 +300,11 @@ class Player {
             baseTransform = 'scaleX(1)';
         }
         
-        // 상태별 효과
         let statusTransform = '';
         if (this.stunned) {
             statusTransform = baseTransform;
         } else if (this.boosted) {
-            statusTransform = baseTransform + ' scale(1.2)'; // 부스터 효과 강화
+            statusTransform = baseTransform + ' scale(1.2)';
         } else if (this.reversed) {
             statusTransform = baseTransform;
         } else {
@@ -241,12 +318,11 @@ class Player {
             this.nameElement.style.top = (pos.y + vehicleSize/2 + 5) + 'px';
         }
         
-        // Lottie 애니메이션 속도 조정
         if (this.lottieAnimation) {
             if (this.stunned) {
                 this.lottieAnimation.setSpeed(0.1);
             } else if (this.boosted) {
-                this.lottieAnimation.setSpeed(3.0); // 부스터시 더 빠르게
+                this.lottieAnimation.setSpeed(3.0);
             } else if (this.reversed) {
                 this.lottieAnimation.setDirection(-1);
                 this.lottieAnimation.setSpeed(2.0);
@@ -256,7 +332,6 @@ class Player {
             }
         }
         
-        // 상태 클래스 적용
         this.element.className = 'vehicle lottie-container';
         if (!this.finished) this.element.classList.add('moving');
         if (this.stunned) this.element.classList.add('stunned');
@@ -274,26 +349,5 @@ class Player {
         if (this.lottieAnimation) {
             this.lottieAnimation.pause();
         }
-    }
-
-    applyStun(duration = 3500) { // 스턴 시간 늘림
-        this.stunned = true;
-        setTimeout(() => {
-            this.stunned = false;
-        }, duration);
-    }
-
-    applyBoost(duration = 4500) { // 부스트 시간 늘림
-        this.boosted = true;
-        setTimeout(() => {
-            this.boosted = false;
-        }, duration);
-    }
-
-    applyReverse(duration = 4000) { // 역주행 시간 늘림
-        this.reversed = true;
-        setTimeout(() => {
-            this.reversed = false;
-        }, duration);
     }
 }

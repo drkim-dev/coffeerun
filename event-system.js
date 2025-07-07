@@ -1,10 +1,11 @@
-// event-system.js - 긴장감 강화 버전 (완전판)
+// event-system.js - GameController와 연결된 스킬 시스템
+
 class EventSystem {
     constructor() {
         this.events = [
             {
                 name: '💣 대폭발!',
-                description: '선두 2명이 크게 느려진다!',
+                description: '선두 2명이 느려진다!',
                 execute: (players) => this.bombEvent(players)
             },
             {
@@ -14,7 +15,7 @@ class EventSystem {
             },
             {
                 name: '🚀 터보 부스터!',
-                description: '꼴찌가 폭발적으로 빨라진다!',
+                description: '꼴찌가 빨라진다!',
                 execute: (players) => this.boostEvent(players)
             },
             {
@@ -29,91 +30,139 @@ class EventSystem {
             },
             {
                 name: '🔥 각성!',
-                description: '하위권 전체가 각성한다!',
+                description: '하위권이 각성한다!',
                 execute: (players) => this.spurtEvent(players)
             }
         ];
         this.usedEvents = [];
     }
 
-    triggerRandomEvent(players) {
-        const activePlayers = players.filter(p => !p.finished);
-        if (activePlayers.length < 2) return;
-        
-        const availableEvents = this.events.filter((_, index) => 
-            !this.usedEvents.includes(index)
-        );
-        
-        if (availableEvents.length === 0) {
-            this.usedEvents = [];
-            return this.triggerRandomEvent(players);
-        }
-        
-        const event = availableEvents[Math.floor(Math.random() * availableEvents.length)];
-        const eventIndex = this.events.indexOf(event);
-        this.usedEvents.push(eventIndex);
-        
-        this.showEventNotification(event.name, event.description);
-        event.execute(activePlayers);
+    // 🆕 GameController 참조 획득
+    getGameController() {
+        return window.gameController;
     }
 
-    // 🎯 이벤트들을 더 임팩트 있게 강화
+    // 🆕 스킬 종료시 간격 재조정 호출
+    scheduleSpacingUpdate(delay = 100) {
+        setTimeout(() => {
+            const controller = this.getGameController();
+            if (controller && typeof controller.onSkillEnd === 'function') {
+                controller.onSkillEnd();
+            }
+        }, delay);
+    }
 
+    // 💣 대폭발 - 스턴 스킬 (추월당함 허용)
     bombEvent(players) {
-        const sorted = players.sort((a, b) => b.progress - a.progress);
-        const topPlayers = sorted.slice(0, Math.min(2, sorted.length)); // 상위 2명
+        const sorted = players.sort((a, b) => b.progress - a.progress); // progress 기준 정렬
+        const topPlayers = sorted.slice(0, Math.min(2, sorted.length));
         
+        this.showEventNotification('💣 대폭발!', '선두 2명이 느려진다!', 3000);
+        
+        // 🎯 상위권만 스턴 + 이펙트
         topPlayers.forEach(player => {
-            player.applyStun(3000); // 3초 긴 스턴
-            this.addParticleEffect(player.element, '💥', '#ff4757');
+            player.applyStun(3000);
+           // this.addParticleEffect(player.element, '💥', '#ff4757');
             
-            // 추가 파티클 효과
             setTimeout(() => {
-                this.addParticleEffect(player.element, '🔥', '#ff4757');
+            //    this.addParticleEffect(player.element, '🔥', '#ff4757');
             }, 500);
         });
+
+        // 🆕 뒷사람들은 조용히 속도만 증가 (이펙트 없음)
+        sorted.forEach(player => {
+            if (!topPlayers.includes(player)) {
+                player.applyBoost(3000); // 부스트 적용하되 파티클 없음
+            }
+        });
+
+        // 🆕 스킬 종료 후 간격 재조정
+        this.scheduleSpacingUpdate(3000);
     }
 
+    // ⚡ 번개공격 - 스턴 스킬 (추월당함 허용)
     lightningEvent(players) {
         const sorted = players.sort((a, b) => b.progress - a.progress);
         const targetCount = Math.min(3, Math.ceil(players.length / 2));
         const targets = sorted.slice(0, targetCount);
         
+        this.showEventNotification('⚡ 번개 공격!', '상위권이 마비된다!', 3000);
+        
+        // 🎯 상위권만 스턴 + 이펙트
         targets.forEach(target => {
-            target.applyStun(3000); // 3초 스턴
-            this.addParticleEffect(target.element, '⚡', '#fdcb6e');
+            target.applyStun(3000);
+            //this.addParticleEffect(target.element, '⚡', '#fdcb6e');
             
-            // 연쇄 번개 효과
             setTimeout(() => {
-                this.addParticleEffect(target.element, '⚡', '#fdcb6e');
+             //   this.addParticleEffect(target.element, '⚡', '#fdcb6e');
             }, 300);
         });
+
+        // 🆕 뒷사람들은 조용히 속도만 증가 (이펙트 없음)
+        sorted.forEach(player => {
+            if (!targets.includes(player)) {
+                player.applyBoost(3000); // 부스트 적용하되 파티클 없음
+            }
+        });
+
+        // 🆕 스킬 종료 후 간격 재조정
+        this.scheduleSpacingUpdate(3000);
     }
 
+    // 🚀 터보부스터 - 부스트 스킬 (추월 허용)
     boostEvent(players) {
         const sorted = players.sort((a, b) => a.progress - b.progress);
         const bottomPlayers = sorted.slice(0, Math.min(2, sorted.length));
         
+        this.showEventNotification('🚀 터보 부스터!', '꼴찌가 빨라진다!', 5000);
+        
         bottomPlayers.forEach(player => {
-            player.applyBoost(6000); // 6초 긴 부스트
-            this.addParticleEffect(player.element, '🚀', '#00b894');
+            player.applyBoost(5000);
+            //this.addParticleEffect(player.element, '🚀', '#00b894');
             
-            // 연속 부스터 효과
             setTimeout(() => {
-                this.addParticleEffect(player.element, '✨', '#00b894');
+            //    this.addParticleEffect(player.element, '✨', '#00b894');
             }, 1000);
             setTimeout(() => {
-                this.addParticleEffect(player.element, '💫', '#00b894');
+             //   this.addParticleEffect(player.element, '💫', '#00b894');
             }, 2000);
         });
+
+        // 🆕 스킬 종료 후 간격 재조정
+        this.scheduleSpacingUpdate(5000);
     }
 
-    // 🌪️ 새로운 대혼란 이벤트 (더 극적)
+    // 🔥 각성 - 부스트 스킬 (추월 허용)
+    spurtEvent(players) {
+        const sorted = players.sort((a, b) => a.progress - b.progress);
+        const bottomHalf = sorted.slice(0, Math.ceil(sorted.length / 2));
+        
+        this.showEventNotification('🔥 각성!', '하위권이 각성한다!', 5000);
+        
+        bottomHalf.forEach(player => {
+            player.applyBoost(5000);
+            //this.addParticleEffect(player.element, '🔥', '#fd79a8');
+            
+            setTimeout(() => {
+               // this.addParticleEffect(player.element, '💨', '#fd79a8');
+            }, 500);
+            setTimeout(() => {
+               // this.addParticleEffect(player.element, '⚡', '#fd79a8');
+            }, 1000);
+        });
+
+        // 🆕 스킬 종료 후 간격 재조정
+        this.scheduleSpacingUpdate(5000);
+    }
+
+    // 🌪️ 대혼란 - 즉시 효과 (추월 시스템 무시)
     chaosEvent(players) {
         const activePlayers = players.filter(p => !p.finished);
         if (activePlayers.length < 2) return;
         
-        // 진행률들을 완전히 섞기
+        this.showEventNotification('🌪️ 대혼란!', '모든 순위가 뒤바뀐다!', 3000);
+        
+        // progress 기준으로 섞기
         const progressValues = activePlayers.map(p => p.progress);
         const shuffledProgress = [...progressValues];
         
@@ -123,96 +172,74 @@ class EventSystem {
             [shuffledProgress[i], shuffledProgress[j]] = [shuffledProgress[j], shuffledProgress[i]];
         }
         
-        // 섞인 진행률 재배정
+        // 🆕 progress만 업데이트
         activePlayers.forEach((player, index) => {
             player.progress = shuffledProgress[index];
-            this.addParticleEffect(player.element, '🌪️', '#a29bfe');
             
-            // 혼란 효과 연출
+            //this.addParticleEffect(player.element, '🌪️', '#a29bfe');
+            
             setTimeout(() => {
-                this.addParticleEffect(player.element, '💫', '#a29bfe');
+                //this.addParticleEffect(player.element, '💫', '#a29bfe');
             }, 200 * index);
         });
+        
+        // 🆕 즉시 간격 재조정 (섞인 후 새로운 간격 패턴 적용)
+        this.scheduleSpacingUpdate(500);
         
         console.log('🌪️ 대혼란! 모든 순위가 뒤바뀌었습니다!');
     }
 
-    // 🎯 1등 저격 이벤트
+    // 🎯 저격 - 즉시 효과 (추월 시스템 무시)
     snipeEvent(players) {
         if (players.length < 2) return;
         
-        const sorted = players.sort((a, b) => b.progress - a.progress);
-        const first = sorted[0];  // 1등
-        const last = sorted[sorted.length - 1];  // 꼴찌
+        this.showEventNotification('🎯 저격!', '1등이 꼴찌가 된다!', 3000);
         
-        // 진행률 교환
+        const sorted = players.sort((a, b) => b.progress - a.progress);
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+        
+        // 🆕 progress 교환
         const tempProgress = first.progress;
         first.progress = last.progress;
         last.progress = tempProgress;
         
-        // 파티클 효과
-        this.addParticleEffect(first.element, '🎯', '#e17055');
-        this.addParticleEffect(last.element, '🚀', '#e17055');
+        //this.addParticleEffect(first.element, '🎯', '#e17055');
+        //this.addParticleEffect(last.element, '🚀', '#e17055');
         
-        // 교환 효과 연출
         setTimeout(() => {
             this.addParticleEffect(first.element, '💫', '#e17055');
             this.addParticleEffect(last.element, '💫', '#e17055');
         }, 300);
         
+        // 🆕 즉시 간격 재조정 (교환 후 새로운 간격 패턴 적용)
+        this.scheduleSpacingUpdate(500);
+        
         console.log('🎯 저격! 1등과 꼴찌가 자리를 바꿨습니다!');
     }
 
-    // 🔥 막판 스퍼트 이벤트
-    spurtEvent(players) {
-        const sorted = players.sort((a, b) => a.progress - b.progress);
-        const bottomHalf = sorted.slice(0, Math.ceil(sorted.length / 2));
+    // 수정된 알람 표시 함수
+    showEventNotification(title, description, duration = 3000) {
+        const notification = document.getElementById('eventNotification');
         
-        bottomHalf.forEach(player => {
-            player.applyBoost(5000); // 5초 부스트
-            this.addParticleEffect(player.element, '🔥', '#fd79a8');
-            
-            // 스퍼트 효과 연출
-            setTimeout(() => {
-                this.addParticleEffect(player.element, '💨', '#fd79a8');
-            }, 500);
-            setTimeout(() => {
-                this.addParticleEffect(player.element, '⚡', '#fd79a8');
-            }, 1000);
-        });
+        let bgColor = '#ff4757';
+        if (title.includes('🚀') || title.includes('🔥')) bgColor = '#00b894';
+        else if (title.includes('⚡') || title.includes('💣')) bgColor = '#fdcb6e';
+        else if (title.includes('🌪️') || title.includes('🎯')) bgColor = '#a29bfe';
+        
+        notification.style.background = `linear-gradient(45deg, ${bgColor}, ${bgColor}cc)`;
+        notification.innerHTML = `
+            <div style="font-size: 20px; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</div>
+            <div style="font-size: 14px; opacity: 0.95; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${description}</div>
+        `;
+        notification.style.display = 'block';
+        
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, duration);
     }
 
-    // 기존 이벤트들도 강화
-    reverseEvent(players) {
-        const sorted = players.sort((a, b) => b.progress - a.progress);
-        const upperHalf = sorted.slice(0, Math.ceil(players.length / 2));
-        
-        upperHalf.forEach(player => {
-            player.applyReverse(4000); // 4초 역주행
-            this.addParticleEffect(player.element, '🔄', '#a29bfe');
-        });
-    }
-
-    swapEvent(players) {
-        if (players.length < 2) return;
-        
-        const sorted = players.sort((a, b) => b.progress - a.progress);
-        const first = sorted[0];
-        const second = sorted[1];
-        
-        // 점진적 위치 교환 (순간이동 방지)
-        const tempProgress = first.progress;
-        const progressDiff = first.progress - second.progress;
-        
-        // 1등을 뒤로, 2등을 앞으로 점진적 이동
-        first.progress = second.progress + progressDiff * 0.3;
-        second.progress = tempProgress - progressDiff * 0.3;
-        
-        this.addParticleEffect(first.element, '🎯', '#74b9ff');
-        this.addParticleEffect(second.element, '🎯', '#74b9ff');
-    }
-
-    // 파티클 효과 강화
+    // 파티클 효과 (기존 코드)
     addParticleEffect(element, emoji, color) {
         if (!element) return;
         
@@ -243,7 +270,6 @@ class EventSystem {
         particle.style.left = rect.left + 'px';
         particle.style.top = rect.top + 'px';
         
-        // 더 임팩트 있는 파티클 애니메이션
         if (!document.getElementById('particle-styles')) {
             const style = document.createElement('style');
             style.id = 'particle-styles';
@@ -272,14 +298,12 @@ class EventSystem {
             document.head.appendChild(style);
         }
         
-        // 방향에 따른 애니메이션 적용
         particle.style.animation = `particle-float-${direction} 1.5s ease-out forwards`;
         
         document.body.appendChild(particle);
         setTimeout(() => particle.remove(), 1500);
     }
     
-    // 요소에서 플레이어 객체 찾기
     getPlayerFromElement(element) {
         if (window.gameController && window.gameController.players) {
             return window.gameController.players.find(p => p.element === element);
@@ -287,7 +311,6 @@ class EventSystem {
         return null;
     }
     
-    // 트랙 경로 정보 가져오기
     getTrackPath() {
         if (window.gameController && window.gameController.renderer) {
             return window.gameController.renderer.trackPath;
@@ -295,46 +318,24 @@ class EventSystem {
         return null;
     }
 
-    // 🎆 다중 파티클 효과 (더 화려하게)
-    addMultipleParticles(element, emojis, color) {
-        emojis.forEach((emoji, index) => {
-            setTimeout(() => {
-                this.addParticleEffect(element, emoji, color);
-            }, index * 150);
-        });
-    }
-
-    // 🔥 폭발적 파티클 효과
-    addExplosionEffect(element) {
-        const explosionEmojis = ['💥', '🔥', '💫', '✨', '⚡'];
-        explosionEmojis.forEach((emoji, index) => {
-            setTimeout(() => {
-                this.addParticleEffect(element, emoji, '#ff4757');
-            }, index * 100);
-        });
-    }
-
-    // 📢 이벤트 알림 강화
-    showEventNotification(title, description) {
-        const notification = document.getElementById('eventNotification');
+    triggerRandomEvent(players) {
+        const activePlayers = players.filter(p => !p.finished);
+        if (activePlayers.length < 2) return;
         
-        // 이벤트 종류별 색상 구분
-        let bgColor = '#ff4757';
-        if (title.includes('🚀') || title.includes('🔥')) bgColor = '#00b894';
-        else if (title.includes('⚡') || title.includes('💣')) bgColor = '#fdcb6e';
-        else if (title.includes('🌪️') || title.includes('🎯')) bgColor = '#a29bfe';
+        const availableEvents = this.events.filter((_, index) => 
+            !this.usedEvents.includes(index)
+        );
         
-        notification.style.background = `linear-gradient(45deg, ${bgColor}, ${bgColor}cc)`;
-        notification.innerHTML = `
-            <div style="font-size: 20px; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</div>
-            <div style="font-size: 14px; opacity: 0.95; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${description}</div>
-        `;
-        notification.style.display = 'block';
+        if (availableEvents.length === 0) {
+            this.usedEvents = [];
+            return this.triggerRandomEvent(players);
+        }
         
-        // 더 긴 표시 시간
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 2500);
+        const event = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+        const eventIndex = this.events.indexOf(event);
+        this.usedEvents.push(eventIndex);
+        
+        event.execute(activePlayers);
     }
 
     reset() {

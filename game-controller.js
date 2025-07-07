@@ -1,4 +1,5 @@
-// game-controller.js - 간소화된 게임 컨트롤러 (모달 연결 수정)
+// game-controller.js - 실시간 간격 조정 시스템
+
 class GameController {
     constructor() {
         this.players = [];
@@ -11,10 +12,15 @@ class GameController {
         this.selectedLoserRank = CONFIG.DEFAULT_LOSER_RANK;
         this.shuffledVehicles = [];
         
-        // === 새로 추가: 기타 선택 관련 변수 ===
-        this.customRanksSelected = []; // 기타 선택시 선택된 등수들
-        this.selectionMode = 'single'; // 'single' 또는 'custom'
-        // === 기타 선택 변수 끝 ===
+        // 기타 선택 관련 변수
+        this.customRanksSelected = [];
+        this.selectionMode = 'single';
+        
+        // 🆕 실시간 간격 조정 관련 변수
+        this.spacingCheckInterval = null;
+        this.lastSpacingUpdate = 0;
+        this.lastCrowdingCheck = 0;
+        this.spacingUpdateCount = 0;
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.initialize());
@@ -30,6 +36,139 @@ class GameController {
         this.setupResizeHandler();
     }
 
+    // 🆕 초기 간격 설정
+    initializeSpacing() {
+        console.log('🎯 초기 간격 패턴 설정 중...');
+        
+        this.players.forEach((player, index) => {
+            player.setInitialSpacing(index, this.players.length);
+        });
+        
+        this.players.forEach(player => {
+            console.log(`${player.name}: ${(player.targetSpacing * 100).toFixed(1)}% 간격`);
+        });
+    }
+
+    // 🆕 실시간 간격 체크 시스템 시작
+    startRealtimeSpacingSystem() {
+        this.lastSpacingUpdate = Date.now();
+        
+        // 0.5초마다 간격 상태 체크
+        this.spacingCheckInterval = setInterval(() => {
+            if (this.gameRunning) {
+                this.checkAndAdjustSpacing();
+            }
+        }, 500);
+        
+        console.log('🔄 실시간 간격 조정 시스템 시작');
+    }
+
+    // 🆕 실시간 간격 체크 및 조정
+    checkAndAdjustSpacing() {
+        const currentTime = Date.now();
+        
+        // 스킬 중에는 간격 조정 안함
+        if (this.hasActiveSkills()) {
+            return;
+        }
+        
+        // 과밀 지역 체크 (1초마다만)
+        let needsAdjustment = false;
+        
+        if (currentTime - this.lastCrowdingCheck > 1000) {
+            this.lastCrowdingCheck = currentTime;
+            
+            // 1. 과밀 지역 체크
+            const crowdedCount = this.countCrowdedPlayers();
+            if (crowdedCount >= 3) {
+                console.log(`🚨 과밀 감지: ${crowdedCount}명이 뭉쳐있음`);
+                needsAdjustment = true;
+            }
+            
+            // 2. 너무 오래 같은 패턴 체크 (8초)
+            const timeSinceLastUpdate = currentTime - this.lastSpacingUpdate;
+            if (timeSinceLastUpdate > 8000) {
+                console.log(`⏰ 패턴 변경 시간: ${(timeSinceLastUpdate/1000).toFixed(1)}초 경과`);
+                needsAdjustment = true;
+            }
+            
+            // 3. 너무 자주 조정 방지 (최소 3초 간격)
+            const minInterval = CONFIG.REALTIME_SPACING.MIN_ADJUSTMENT_INTERVAL;
+            if (timeSinceLastUpdate < minInterval) {
+                console.log(`🚫 간격 조정 대기 중: ${(minInterval - timeSinceLastUpdate)/1000}초 남음`);
+                needsAdjustment = false;
+            }
+        }
+        
+        if (needsAdjustment) {
+            this.executeSpacingAdjustment();
+        }
+    }
+
+    // 🆕 과밀 상태 감지
+    countCrowdedPlayers() {
+        const activePlayers = this.players.filter(p => !p.finished);
+        if (activePlayers.length < 2) return 0;   // 2명 미만이면 과밀 체크 불필요
+        
+        let crowdedCount = 0; 
+        const CROWDING_THRESHOLD = 0.01; // 51 이내면 뭉쳐있다고 판단
+        
+        for (let i = 0; i < activePlayers.length; i++) {
+            let nearbyCount = 1; // 자기 자신 포함
+            
+            for (let j = 0; j < activePlayers.length; j++) {
+                if (i !== j) {
+                    const distance = Math.abs(activePlayers[i].progress - activePlayers[j].progress);
+                    if (distance <= CROWDING_THRESHOLD) {
+                        nearbyCount++;
+                    }
+                }
+            }
+            
+            if (nearbyCount >= 2) { //
+                crowdedCount = Math.max(crowdedCount, nearbyCount);
+            }
+        }
+        
+        return crowdedCount;
+    }
+
+    // 🆕 활성 스킬 체크 (스킬 중에는 간격 조정 안함)
+    hasActiveSkills() {
+        // 알람이 표시 중이면 스킬 활성화 상태로 판단
+        const notification = document.getElementById('eventNotification');
+        const hasNotification = notification && notification.style.display === 'block';
+        
+        // 플레이어 중 추월 허용 상태인 사람이 있으면 스킬 활성화
+        const hasOverlapPlayers = this.players.some(p => p.allowOverlap && !p.finished);
+        
+        return hasNotification || hasOverlapPlayers;
+    }
+
+    // 🆕 간격 조정 실행
+    executeSpacingAdjustment() {
+        this.spacingUpdateCount++;
+        console.log(`🔄 간격 재조정 실행 #${this.spacingUpdateCount}`);
+        
+        this.players.forEach(player => {
+            if (!player.finished) {
+                player.redistributeSpacing(this.players);
+            }
+        });
+        
+        this.lastSpacingUpdate = Date.now();
+    }
+
+    // 🆕 실시간 간격 시스템 정리
+    stopRealtimeSpacingSystem() {
+        if (this.spacingCheckInterval) {
+            clearInterval(this.spacingCheckInterval);
+            this.spacingCheckInterval = null;
+            console.log('🛑 실시간 간격 조정 시스템 종료');
+        }
+    }
+
+    // 기존 함수들...
     initializeUI() {
         console.log('Available Lottie files:', CONFIG.LOTTIE_FILES);
         this.shuffledLottieFiles = [...CONFIG.LOTTIE_FILES].sort(() => Math.random() - 0.5);
@@ -50,9 +189,7 @@ class GameController {
                 e.target.classList.add('active');
                 
                 this.updatePlayerInputs();
-                // === 새로 추가: 인원 변경시 체크박스도 업데이트 ===
                 this.updateCustomRankSelector();
-                // === 체크박스 업데이트 끝 ===
             }
         });
     }
@@ -63,7 +200,6 @@ class GameController {
 
         setupContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('rank-btn')) {
-                // 모든 버튼 비활성화
                 document.querySelectorAll('.rank-btn').forEach(btn => btn.classList.remove('active'));
                 e.target.classList.add('active');
                 
@@ -71,18 +207,13 @@ class GameController {
                 const customSelector = document.getElementById('customRankSelector');
                 
                 if (type === 'custom') {
-                    // === 수정: 기타 선택시 모달 열기 ===
                     this.selectionMode = 'custom';
-                    // 기존 체크박스 방식 대신 모달 열기
                     if (typeof showCustomRanks === 'function') {
                         showCustomRanks();
                     } else {
-                        // fallback: 직접 모달 열기
                         this.openCustomRanksModal();
                     }
-                    // === 기타 선택 로직 끝 ===
                 } else {
-                    // 단일 선택
                     this.selectionMode = 'single';
                     this.selectedLoserRank = parseInt(e.target.dataset.rank);
                     if (customSelector) {
@@ -92,208 +223,6 @@ class GameController {
                 }
             }
         });
-    }
-
-    // === 새로 추가: 직접 모달 열기 함수 ===
-    openCustomRanksModal() {
-        this.updateRankSelectionGrid();
-        const modal = document.getElementById('customRanksModal');
-        if (modal) {
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    // === 새로 추가: 등수 선택 그리드 업데이트 ===
-    updateRankSelectionGrid() {
-        const grid = document.getElementById('rankSelectionGrid');
-        if (!grid) return;
-        
-        grid.innerHTML = '';
-        
-        // 등수별 버튼 생성
-        for (let i = 1; i <= this.selectedPlayerCount; i++) {
-            const item = document.createElement('div');
-            item.className = 'rank-selection-item';
-            item.dataset.rank = i;
-            
-            // 등수 텍스트
-            let rankText;
-            if (i === 1) rankText = '1등';
-            else if (i === this.selectedPlayerCount) rankText = '꼴찌';
-            else rankText = `${i}등`;
-            
-            item.textContent = rankText;
-            
-            // 이미 선택된 등수면 활성화
-            if (this.customRanksSelected.includes(i)) {
-                item.classList.add('selected');
-            }
-            
-            // 클릭 이벤트
-            item.addEventListener('click', function() {
-                this.classList.toggle('selected');
-            });
-            
-            grid.appendChild(item);
-        }
-    }
-
-    // === 새로 추가: 커스텀 선택 확인 함수 ===
-    confirmCustomSelection() {
-        const selectedItems = document.querySelectorAll('.rank-selection-item.selected');
-        
-        if (selectedItems.length === 0) {
-            alert('최소 1개 이상의 등수를 선택해주세요!');
-            return;
-        }
-        
-        // 선택된 등수들 저장
-        const selectedRanks = Array.from(selectedItems).map(item => parseInt(item.dataset.rank));
-        this.customRanksSelected = selectedRanks;
-        this.selectionMode = 'custom';
-        
-        // "기타" 버튼 텍스트 업데이트
-        const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
-        if (customBtn) {
-            const count = selectedRanks.length;
-            customBtn.textContent = `기타 (${count}개)`;
-        }
-        
-        // 모달 닫기
-        this.closeModal('customRanksModal');
-    }
-
-    // === 새로 추가: 커스텀 선택 취소 함수 ===
-    cancelCustomSelection() {
-        // 이전 상태로 복원 (단일 선택으로)
-        this.selectionMode = 'single';
-        this.customRanksSelected = [];
-        
-        // 버튼 상태 초기화
-        document.querySelectorAll('.rank-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.rank-btn[data-rank="1"]').classList.add('active');
-        this.selectedLoserRank = 1;
-        
-        // "기타" 버튼 텍스트 복원
-        const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
-        if (customBtn) {
-            customBtn.textContent = '기타';
-        }
-        
-        // 모달 닫기
-        this.closeModal('customRanksModal');
-    }
-
-    // === 새로 추가: 모달 닫기 함수 ===
-    closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('show');
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    // === 새로 추가: 기타 선택 체크박스 업데이트 함수 (사용 안함, 호환성 유지) ===
-    updateCustomRankSelector() {
-        // 이 함수는 더 이상 사용하지 않지만 호환성을 위해 유지
-        console.log('Custom rank selector updated for', this.selectedPlayerCount, 'players');
-    }
-    // === 기타 선택 체크박스 함수 끝 ===
-
-    setupResizeHandler() {
-        window.addEventListener('resize', () => {
-            if (this.gameRunning && this.renderer.trackPath) {
-                // 트랙 경로 재계산
-                this.renderer.calculateTrackPath();
-            }
-        });
-    }
-
-    updatePlayerInputs() {
-        const playerInputsContainer = document.getElementById('playerInputs');
-        if (!playerInputsContainer) return;
-        
-        playerInputsContainer.innerHTML = '';
-        
-        for (let i = 0; i < CONFIG.MAX_PLAYERS; i++) {
-            const playerInput = document.createElement('div');
-            playerInput.className = 'player-input';
-            
-            if (i >= this.selectedPlayerCount) {
-                playerInput.classList.add('hidden');
-            }
-            
-            const lottiePreview = document.createElement('div');
-            lottiePreview.className = 'lottie-preview';
-            lottiePreview.id = `preview-${i}`;
-            
-            playerInput.innerHTML = `
-                <input type="text" placeholder="참가자 이름 입력" maxlength="12">
-            `;
-            playerInput.appendChild(lottiePreview);
-            
-            playerInputsContainer.appendChild(playerInput);
-            
-            // Lottie 미리보기 로드 (실제 파일 경로 사용)
-            if (i < this.shuffledLottieFiles.length) {
-                console.log(`Loading preview ${i}:`, this.shuffledLottieFiles[i]);
-                this.loadLottiePreview(lottiePreview, this.shuffledLottieFiles[i]);
-            }
-        }
-    }
-
-    loadLottiePreview(container, lottieFile) {
-    container.innerHTML = '';
-    
-        if (typeof lottie === 'undefined') {
-            console.warn('Lottie library not loaded');
-            return;
-        }
-        
-        console.log('Loading Lottie preview:', lottieFile);
-        
-        try {
-            const animation = lottie.loadAnimation({
-                container: container,
-                renderer: 'svg',
-                loop: true,
-                autoplay: true,
-                path: lottieFile
-            });
-            
-            // 🆕 호버 효과 이벤트 추가
-            const playerInput = container.closest('.player-input');
-            
-            playerInput.addEventListener('mouseenter', () => {
-                if (animation) {
-                    animation.setSpeed(2.0); // 호버시 2배속
-                }
-            });
-            
-            playerInput.addEventListener('mouseleave', () => {
-                if (animation) {
-                    animation.setSpeed(1.5); // 원래 속도로 (기존과 동일)
-                }
-            });
-            
-            animation.addEventListener('config_ready', () => {
-                console.log('✅ Lottie preview loaded successfully:', lottieFile);
-                animation.setSpeed(1.5); // 기본 속도 설정
-            });
-            
-            animation.addEventListener('data_failed', (error) => {
-                console.error('❌ Lottie preview failed to load:', lottieFile, error);
-                // 실패시 기본 이모지로 대체
-                container.innerHTML = '🏃‍♂️';
-                container.style.fontSize = '20px';
-            });
-            
-        } catch (error) {
-            console.error('Error loading Lottie preview:', error);
-            container.innerHTML = '🏃‍♂️';
-            container.style.fontSize = '20px';
-        }
     }
 
     async startGame() {
@@ -315,17 +244,18 @@ class GameController {
             return;
         }
         
-        // === 새로 추가: 기타 선택 모드 검증 ===
         if (this.selectionMode === 'custom' && this.customRanksSelected.length === 0) {
             alert('당첨 등수를 최소 1개 이상 선택해주세요!');
             return;
         }
-        // === 기타 선택 검증 끝 ===
         
         document.querySelector('.setup-container').style.display = 'none';
         document.getElementById('raceContainer').style.display = 'block';
         
         this.renderer.setupRaceTrack(this.players);
+        
+        // 간격 시스템 초기화
+        this.initializeSpacing();
         
         await this.showCountdown();
         
@@ -346,6 +276,9 @@ class GameController {
         this.raceStartTime = Date.now();
         this.lastFrameTime = this.raceStartTime;
         this.eventSystem.reset();
+        
+        // 🆕 실시간 간격 조정 시스템 시작
+        this.startRealtimeSpacingSystem();
         
         this.raceLoop();
         this.scheduleEvents();
@@ -392,38 +325,18 @@ class GameController {
             }, eventTime);
         });
         
-        // 특별 이벤트 스케줄링
         this.scheduleSpecialSkills();
     }
 
     scheduleSpecialSkills() {
-        // 🎪 중간 대혼란 - 30초 후
-        // setTimeout(() => {
-        //     if (this.gameRunning) {
-        //         this.eventSystem.showEventNotification('🎪 중간 대혼란!', '상하위 속도 반전!');
-        //         setTimeout(() => {
-        //             if (this.gameRunning) {
-        //                 this.eventSystem.bigReverseEvent(this.players.filter(p => !p.finished));
-        //             }
-        //         }, 500);
-        //     }
-        // }, 30000);
-
-        // // 🌟 막판 역전의 기회 - 45초 후
-        // setTimeout(() => {
-        //     if (this.gameRunning) {
-        //         this.eventSystem.showEventNotification('🌟 막판 역전의 기회!', '하위권 마지막 찬스!');
-        //         setTimeout(() => {
-        //             if (this.gameRunning) {
-        //                 this.eventSystem.comebackEvent(this.players.filter(p => !p.finished));
-        //             }
-        //         }, 100);
-        //     }
-        // }, 45000);
+        // 기존 특별 스킬 스케줄링 코드...
     }
 
     endRace() {
         this.gameRunning = false;
+        
+        // 🆕 실시간 간격 조정 시스템 정리
+        this.stopRealtimeSpacingSystem();
         
         // 미완주 플레이어 처리
         this.players.forEach(player => {
@@ -433,7 +346,7 @@ class GameController {
             }
         });
         
-        // 최종 순위 계산
+        // 최종 순위 계산 (progress 기준)
         const sortedPlayers = [...this.players].sort((a, b) => {
             if (a.finished && b.finished) {
                 return a.finishTime - b.finishTime;
@@ -443,11 +356,10 @@ class GameController {
             return b.progress - a.progress;
         });
         
-        // === 새로 추가: 당첨자 결정 로직 ===
+        // 당첨자 결정 로직
         let winners = [];
         
         if (this.selectionMode === 'single') {
-            // 단일 선택 모드
             const loserIndex = sortedPlayers.length - this.selectedLoserRank;
             const winner = sortedPlayers[Math.max(0, loserIndex)];
             if (winner) {
@@ -457,9 +369,8 @@ class GameController {
                 });
             }
         } else {
-            // 기타 선택 모드 (복수 선택)
             this.customRanksSelected.forEach(rank => {
-                const playerIndex = rank - 1; // 1등 = index 0
+                const playerIndex = rank - 1;
                 if (playerIndex < sortedPlayers.length) {
                     const player = sortedPlayers[playerIndex];
                     let rankText;
@@ -474,7 +385,6 @@ class GameController {
                 }
             });
         }
-        // === 당첨자 결정 로직 끝 ===
         
         setTimeout(() => {
             this.renderer.showModernResults(winners, this.selectionMode);
@@ -485,33 +395,32 @@ class GameController {
         this.gameRunning = false;
         this.players = [];
         this.eventSystem.reset();
-        // === 새로 추가: 리셋시 기타 선택 초기화 ===
+        
+        // 🆕 실시간 간격 조정 시스템 정리
+        this.stopRealtimeSpacingSystem();
+        
+        // 기타 선택 초기화
         this.customRanksSelected = [];
         this.selectionMode = 'single';
-        // === 기타 선택 초기화 끝 ===
         
         document.getElementById('resultOverlay').style.display = 'none';
         
         document.querySelector('.setup-container').style.display = 'block';
         document.getElementById('raceContainer').style.display = 'none';
         
-        // === 새로 추가: 기타 선택 영역 숨기기 ===
         const customSelector = document.getElementById('customRankSelector');
         if (customSelector) {
             customSelector.style.display = 'none';
         }
         
-        // 버튼 상태 초기화
         document.querySelectorAll('.rank-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector('.rank-btn[data-rank="1"]').classList.add('active');
         this.selectedLoserRank = 1;
         
-        // "기타" 버튼 텍스트 복원
         const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
         if (customBtn) {
             customBtn.textContent = '기타';
         }
-        // === 기타 선택 리셋 끝 ===
         
         document.querySelectorAll('.player-input input').forEach(input => {
             input.value = '';
@@ -524,5 +433,187 @@ class GameController {
         if (timeLeft) timeLeft.textContent = '60.0s';
         
         this.updatePlayerInputs();
+        
+        console.log('🔄 게임 리셋 완료');
+    }
+
+    // 나머지 기존 함수들...
+    openCustomRanksModal() {
+        this.updateRankSelectionGrid();
+        const modal = document.getElementById('customRanksModal');
+        if (modal) {
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    updateRankSelectionGrid() {
+        const grid = document.getElementById('rankSelectionGrid');
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        
+        for (let i = 1; i <= this.selectedPlayerCount; i++) {
+            const item = document.createElement('div');
+            item.className = 'rank-selection-item';
+            item.dataset.rank = i;
+            
+            let rankText;
+            if (i === 1) rankText = '1등';
+            else if (i === this.selectedPlayerCount) rankText = '꼴찌';
+            else rankText = `${i}등`;
+            
+            item.textContent = rankText;
+            
+            if (this.customRanksSelected.includes(i)) {
+                item.classList.add('selected');
+            }
+            
+            item.addEventListener('click', function() {
+                this.classList.toggle('selected');
+            });
+            
+            grid.appendChild(item);
+        }
+    }
+
+    confirmCustomSelection() {
+        const selectedItems = document.querySelectorAll('.rank-selection-item.selected');
+        
+        if (selectedItems.length === 0) {
+            alert('최소 1개 이상의 등수를 선택해주세요!');
+            return;
+        }
+        
+        const selectedRanks = Array.from(selectedItems).map(item => parseInt(item.dataset.rank));
+        this.customRanksSelected = selectedRanks;
+        this.selectionMode = 'custom';
+        
+        const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
+        if (customBtn) {
+            const count = selectedRanks.length;
+            customBtn.textContent = `기타 (${count}개)`;
+        }
+        
+        this.closeModal('customRanksModal');
+    }
+
+    cancelCustomSelection() {
+        this.selectionMode = 'single';
+        this.customRanksSelected = [];
+        
+        document.querySelectorAll('.rank-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.rank-btn[data-rank="1"]').classList.add('active');
+        this.selectedLoserRank = 1;
+        
+        const customBtn = document.querySelector('.rank-btn[data-type="custom"]');
+        if (customBtn) {
+            customBtn.textContent = '기타';
+        }
+        
+        this.closeModal('customRanksModal');
+    }
+
+    closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    updateCustomRankSelector() {
+        console.log('Custom rank selector updated for', this.selectedPlayerCount, 'players');
+    }
+
+    setupResizeHandler() {
+        window.addEventListener('resize', () => {
+            if (this.gameRunning && this.renderer.trackPath) {
+                this.renderer.calculateTrackPath();
+            }
+        });
+    }
+
+    updatePlayerInputs() {
+        const playerInputsContainer = document.getElementById('playerInputs');
+        if (!playerInputsContainer) return;
+        
+        playerInputsContainer.innerHTML = '';
+        
+        for (let i = 0; i < CONFIG.MAX_PLAYERS; i++) {
+            const playerInput = document.createElement('div');
+            playerInput.className = 'player-input';
+            
+            if (i >= this.selectedPlayerCount) {
+                playerInput.classList.add('hidden');
+            }
+            
+            const lottiePreview = document.createElement('div');
+            lottiePreview.className = 'lottie-preview';
+            lottiePreview.id = `preview-${i}`;
+            
+            playerInput.innerHTML = `
+                <input type="text" placeholder="참가자 이름 입력" maxlength="12">
+            `;
+            playerInput.appendChild(lottiePreview);
+            
+            playerInputsContainer.appendChild(playerInput);
+            
+            if (i < this.shuffledLottieFiles.length) {
+                console.log(`Loading preview ${i}:`, this.shuffledLottieFiles[i]);
+                this.loadLottiePreview(lottiePreview, this.shuffledLottieFiles[i]);
+            }
+        }
+    }
+
+    loadLottiePreview(container, lottieFile) {
+        container.innerHTML = '';
+        
+        if (typeof lottie === 'undefined') {
+            console.warn('Lottie library not loaded');
+            return;
+        }
+        
+        console.log('Loading Lottie preview:', lottieFile);
+        
+        try {
+            const animation = lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: lottieFile
+            });
+            
+            const playerInput = container.closest('.player-input');
+            
+            playerInput.addEventListener('mouseenter', () => {
+                if (animation) {
+                    animation.setSpeed(2.0);
+                }
+            });
+            
+            playerInput.addEventListener('mouseleave', () => {
+                if (animation) {
+                    animation.setSpeed(1.5);
+                }
+            });
+            
+            animation.addEventListener('config_ready', () => {
+                console.log('✅ Lottie preview loaded successfully:', lottieFile);
+                animation.setSpeed(1.5);
+            });
+            
+            animation.addEventListener('data_failed', (error) => {
+                console.error('❌ Lottie preview failed to load:', lottieFile, error);
+                container.innerHTML = '🏃‍♂️';
+                container.style.fontSize = '20px';
+            });
+            
+        } catch (error) {
+            console.error('Error loading Lottie preview:', error);
+            container.innerHTML = '🏃‍♂️';
+            container.style.fontSize = '20px';
+        }
     }
 }

@@ -208,8 +208,6 @@
 | 📋 문의 유형 | 📬 연락 방법 |
 |:---:|:---:|
 | 🐛 **버그 신고** | [GitHub Issues](https://github.com/username/coffeerun/issues) |
-| 💼 **상업적 라이선스** | drkim1239@gmail.com |
-| 🛠️ **커스터마이징 의뢰** | drkim1239@gmail.com |
 | ❓ **일반 문의** | drkim1239@gmail.com |
 
 ---

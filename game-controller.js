@@ -148,6 +148,9 @@ class GameController {
     }
 
     async showCountdown() {
+        // 결승선 타일 생성 (플레이어 시작 위치 기준)
+        this.renderer.createFinishLineTiles(this.players);
+        
         for (let i = 3; i > 0; i--) {
             this.renderer.showCountdown(i);
             await new Promise(resolve => setTimeout(resolve, 1000));

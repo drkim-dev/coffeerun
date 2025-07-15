@@ -72,7 +72,7 @@ class RaceRenderer {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(0,0,0,0.8);
+            
             color: white;
             padding: 5px;
             font-size: 10px;
@@ -473,6 +473,43 @@ class RaceRenderer {
             finalRankings.appendChild(rankItem);
         });
     }
+    // race-renderer.js에 추가할 함수
+    createFinishLineTiles(players) {
+        // 기존 결승선 제거
+        const existingFinishLine = document.querySelector('.finish-line');
+        if (existingFinishLine) {
+            existingFinishLine.remove();
+        }
+        
+        // 각 플레이어의 시작 위치 계산
+        players.forEach((player, index) => {
+            const startPos = player.getPosition(this.trackPath);
+            
+            // 해당 위치에 체크무늬 타일 생성
+            const finishTile = document.createElement('div');
+            finishTile.className = 'finish-line-tile';
+            finishTile.style.cssText = `
+                position: absolute;
+                left: ${startPos.x - 15}px;
+                top: ${startPos.y - 15}px;
+                width: 30px;
+                height: 30px;
+                background-image: 
+                    linear-gradient(45deg, #000 25%, transparent 25%),
+                    linear-gradient(-45deg, #000 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #000 75%),
+                    linear-gradient(-45deg, transparent 75%, #000 75%);
+                background-size: 10px 10px;
+                background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+                background-color: #fff;
+                z-index: 50;
+                border-radius: 3px;
+            `;
+            
+            document.getElementById('raceTrack').appendChild(finishTile);
+        });
+    }
+
 
     initializeCarousel() {
         let currentPage = 0;

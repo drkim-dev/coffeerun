@@ -1,12 +1,19 @@
 User-agent: *
 Allow: /
 
+# 파비콘 파일들 명시적 허용 (네이버 권장)
+Allow: /favicon.ico
+Allow: /favicon-*.png
+Allow: /apple-touch-icon.png
+
+# CSS, JS, 이미지도 허용 (네이버 요구사항)
+Allow: /styles.css
+Allow: /*.js
+Allow: /animations/
+Allow: /og-image.png
+
 # 사이트맵 위치
 Sitemap: https://coffeerun.kr/sitemap.xml
-
-# 크롤링 차단할 파일들 (없으면 생략)
-# Disallow: /admin/
-# Disallow: /private/
 
 # 검색엔진별 설정
 User-agent: Googlebot

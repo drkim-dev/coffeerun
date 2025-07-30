@@ -98,7 +98,7 @@ class Player {
         if (this.isOvertaking) {
             speed *= 2.0;
             
-            console.log(`🚀 ${this.name} 추월 중! 진행률: ${(this.progress*100).toFixed(1)}%, 목표: ${(this.overtakeTarget*100).toFixed(1)}%`);
+            //console.log(`🚀 ${this.name} 추월 중! 진행률: ${(this.progress*100).toFixed(1)}%, 목표: ${(this.overtakeTarget*100).toFixed(1)}%`);
             
             // 추월 완료 체크 (목표 위치를 넘어섰는지)
             if (this.progress > this.overtakeTarget) {
@@ -144,65 +144,71 @@ class Player {
         return Math.abs(this.progress - last.progress);
     }
 
-    // 스킬 적용 함수들 (기존과 동일)
-    applyStun(duration = 3000) {
-        this.stunned = true;
-        this.allowOverlap = true; // 스턴 중에는 추월당할 수 있음
-        
-        console.log(`${this.name} 스턴 시작 (${duration}ms)`);
-        
-        setTimeout(() => {
-            this.stunned = false;
-            this.allowOverlap = false;
-            console.log(`${this.name} 스턴 종료`);
-        }, duration);
-    }
-
-    applyBoost(duration = 5000) {
-        this.boosted = true;
-        this.allowOverlap = true; // 부스트 중에는 추월 가능
-        
-        console.log(`${this.name} 부스트 시작 (${duration}ms)`);
-        
-        setTimeout(() => {
-            this.boosted = false;
-            this.allowOverlap = false;
-            console.log(`${this.name} 부스트 종료`);
-        }, duration);
-    }
-
-    applyReverse(duration = 4000) {
-        this.reversed = true;
-        this.allowOverlap = true;
-        
-        console.log(`${this.name} 역주행 시작 (${duration}ms)`);
-        
-        setTimeout(() => {
-            this.reversed = false;
-            this.allowOverlap = false;
-            console.log(`${this.name} 역주행 종료`);
-        }, duration);
-    }
-
-    // 랜덤 속도 업데이트
-    updateRandomSpeed(allPlayers = []) {
-        const ranking = this.getRanking(allPlayers);
-        const totalPlayers = allPlayers.filter(p => !p.finished).length;
-        
-        const stabilityFactor = this.consistencyFactor > 0.7 ? 1.2 : 0.8;
-        const baseRandom = 0.8 + Math.random() * 0.4;
-        this.randomSpeedMultiplier = baseRandom * this.personalMultiplier * stabilityFactor;
-        
-        // 🆕 baseSpeed도 5초마다 변경!
-        this.baseSpeed = this.generateUniqueSpeed();
-        
-        // 약간의 순위별 조정
-        if (ranking === totalPlayers) {
-            this.randomSpeedMultiplier *= 1.1; // 꼴찌 10% 증가
-        } else if (ranking === 1) {
-            this.randomSpeedMultiplier *= 0.95; // 1등 5% 감소
+    applyStun(duration = null) {
+            // duration이 null이면 CONFIG에서 가져오기
+            const stunDuration = duration || CONFIG.SKILL_SYSTEM.SKILL_DURATIONS.STUN;
+            
+            this.stunned = true;
+            this.allowOverlap = true;
+            
+            console.log(`${this.name} 스턴 시작 (${stunDuration}ms)`);
+            
+            setTimeout(() => {
+                this.stunned = false;
+                this.allowOverlap = false;
+                console.log(`${this.name} 스턴 종료`);
+            }, stunDuration);
         }
-    }
+
+        applyBoost(duration = null) {
+            // duration이 null이면 CONFIG에서 가져오기
+            const boostDuration = duration || CONFIG.SKILL_SYSTEM.SKILL_DURATIONS.BOOST;
+            
+            this.boosted = true;
+            this.allowOverlap = true;
+            
+            console.log(`${this.name} 부스트 시작 (${boostDuration}ms)`);
+            
+            setTimeout(() => {
+                this.boosted = false;
+                this.allowOverlap = false;
+                console.log(`${this.name} 부스트 종료`);
+            }, boostDuration);
+        }
+
+        applyReverse(duration = 4000) {
+            // 역주행은 고정 시간 사용 (너무 짧으면 효과가 없음)
+            this.reversed = true;
+            this.allowOverlap = true;
+            
+            console.log(`${this.name} 역주행 시작 (${duration}ms)`);
+            
+            setTimeout(() => {
+                this.reversed = false;
+                this.allowOverlap = false;
+                console.log(`${this.name} 역주행 종료`);
+            }, duration);
+        }
+
+        // 🆕 랜덤 속도 업데이트 (동적 기본속도 사용)
+        updateRandomSpeed(allPlayers = []) {
+            const ranking = this.getRanking(allPlayers);
+            const totalPlayers = allPlayers.filter(p => !p.finished).length;
+            
+            const stabilityFactor = this.consistencyFactor > 0.7 ? 1.2 : 0.8;
+            const baseRandom = 0.8 + Math.random() * 0.4;
+            this.randomSpeedMultiplier = baseRandom * this.personalMultiplier * stabilityFactor;
+            
+            // 🆕 동적 baseSpeed 생성
+            this.baseSpeed = this.generateUniqueSpeed();
+            
+            // 약간의 순위별 조정
+            if (ranking === totalPlayers) {
+                this.randomSpeedMultiplier *= 1.1; // 꼴찌 10% 증가
+            } else if (ranking === 1) {
+                this.randomSpeedMultiplier *= 0.95; // 1등 5% 감소
+            }
+        }
     
     // 현재 순위 계산
     getRanking(allPlayers) {

@@ -6,8 +6,8 @@
     
     <!-- 기본 SEO -->
     <title>[커피런] - 신개념 커피내기 게임 | 복불복 내기게임</title>
-    <meta name="description" content="회사나 친구들과 함께하는 재미있는 커피내기 게임! 1분만에 끝나는 간단한 뽑기게임 으로 누가 커피를 살지 정해보세요. 모바일 지원, 무료게임, 커피런, 커피내기, 커피내기게임, 내기게임, 경주게임, 달리기 게임, 벌칙게임사이트, 랜덤게임">
-    <meta name="keywords" content="커피내기, 커피런, 내기게임, 복불복게임, 뽑기게임, 사내게임, 커피내기앱, 랜덤게임, 내기게임, 커피내기 게임, 경주게임, 달리기게임, 레이싱게임,커피내기 달리기 게임, 벌칙게임사이트, 랜덤게임 커피내기">
+    <meta name="description" content="회사나 친구들과 함께하는 재미있는 커피내기 게임! 1분만에 끝나는 간단한 뽑기게임 으로 누가 커피를 살지 정해보세요. 모바일 지원, 무료게임, 커피런, 커피내기, 커피내기게임, 내기게임">
+    <meta name="keywords" content="커피내기, 커피런, 내기게임, 복불복게임, 뽑기게임, 사내게임, 커피내기앱, 랜덤게임, 내기게임, 커피내기 게임, 경주게임, 달리기게임, 레이싱게임,커피내기 달리기 게임, 벌칙게임사이트">
     <meta name="author" content="김준하">
     <meta name="robots" content="index, follow">
     <meta name="language" content="ko">
@@ -167,16 +167,26 @@
             </div>
         </div>
 
-        <div class="loser-rank-selector">
-            <label>☕ 당첨자 선택:</label>
-            <div class="rank-buttons">
-                <button class="rank-btn active" data-rank="1" data-type="single">꼴찌</button>
-                <button class="rank-btn" data-rank="2" data-type="single">뒤에서 2등</button>
-                <button class="rank-btn" data-rank="3" data-type="single">뒤에서 3등</button>
-                <button class="rank-btn" data-type="custom">기타</button>
+
+        <div class="game-settings-container">
+            <!-- 왼쪽: 게임 시간 -->
+            <div class="game-time-selector">
+                <label>⏱️ 게임 시간:</label>
+                <div class="time-buttons">
+                    <button class="time-btn active" data-time="20">20초 <span class="time-recommended">추천</span></button>
+                    <button class="time-btn" data-time="40">40초</button>
+                    <button class="time-btn" data-time="60">60초</button>
+                </div>
+            </div>
+            <div class="loser-rank-selector">
+                <label>☕ 당첨자 선택:</label>
+                <div class="rank-buttons">
+                    <button class="rank-btn active" data-rank="1" data-type="single">꼴찌</button>
+                    <button class="rank-btn" data-type="custom">기타</button>
+                </div>
             </div>
         </div>
-        
+
         <div class="player-inputs-grid" id="playerInputs"></div>
             <div class="game-help-buttons">
                 <button class="help-btn" onclick="showGameRules()" title="게임 규칙">
@@ -188,7 +198,7 @@
             </div>
         <button class="start-btn" onclick="startGame()">🚀 레이스 시작!</button>
             <div class="game-info-text">
-                <p>🎮 CoffeeRun v1.2 - 신개념 커피 내기 레이싱 게임 🎮</p>
+                <p>🎮 CoffeeRun v1.3 - 신개념 커피 내기 레이싱 게임 🎮</p>
                 <style>
                   .blog-link {
                     color: #feca57;
@@ -251,8 +261,8 @@
                                     <div class="rule-step">
                                         <div class="step-number">2</div>
                                         <div class="step-content">
-                                            <h5>당첨 등수 선택</h5>
-                                            <p>꼴찌, 뒤에서 2등, 3등 또는 기타(복수선택)</p>
+                                            <h5>시간, 당첨 등수 선택</h5>
+                                            <p>꼴찌, 기타(복수선택)</p>
                                         </div>
                                     </div>
                                     
@@ -268,7 +278,7 @@
                                         <div class="step-number">4</div>
                                         <div class="step-content">
                                             <h5>레이스 관전</h5>
-                                            <p>1분간 자동 진행되는 레이스를 관전하세요</p>
+                                            <p>자동 진행되는 레이스를 관전하세요</p>
                                         </div>
                                     </div>
                                     
@@ -405,10 +415,55 @@
         </div>
     </div>
     
+    <!-- 로딩 페이지 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-container">
+            <!-- 로딩 애니메이션 -->
+            <div class="loading-animation" id="loadingAnimation">
+                <!-- Lottie 로딩 애니메이션이 여기에 들어감 -->
+            </div>
+            
+            <!-- 로딩 텍스트 -->
+            <div class="loading-title">게임 준비 중...</div>
+            
+            <!-- 게임 설정 요약 -->
+            <div class="game-settings-summary" id="gameSettingsSummary">
+                <div class="setting-item">
+                    <span class="setting-label">참가자:</span>
+                    <span class="setting-value" id="summaryPlayerCount">3명</span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">게임시간:</span>
+                    <span class="setting-value" id="summaryGameTime">20초</span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">당첨조건:</span>
+                    <span class="setting-value" id="summaryWinCondition">꼴찌</span>
+                </div>
+            </div>
+            
+            <!-- 게임 팁 -->
+            <div class="game-tip-container">
+                <div class="tip-icon">💡</div>
+                <div class="game-tip" id="gameTip">
+                    스킬 발동시 순위표 색깔이 바뀝니다
+                </div>
+            </div>
+            
+            <!-- 로딩 프로그레스 -->
+            <div class="loading-progress">
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="loadingProgressFill"></div>
+                </div>
+                <div class="loading-percentage" id="loadingPercentage">0%</div>
+            </div>
+        </div>
+    </div>
+
     <div class="race-container" id="raceContainer">
         <div class="race-info">
             <div class="time-display">
-                <div>⏰ 남은 시간: <span id="timeLeft">60.0s</span></div>
+                <div>⏰ 남은 시간: <span id="timeLeft"></span></div>
             </div>
         </div>
         

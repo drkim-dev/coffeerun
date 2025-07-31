@@ -136,7 +136,7 @@ class GameController {
                             const overtakeDistance = isMobile ? 0.04 : 0.03; // 모바일: 4%, PC: 3%
                             backPlayer.overtakeTarget = frontPlayer.progress + overtakeDistance;
                             
-                            console.log(`🏃‍♂️ ${backPlayer.name}이 ${frontPlayer.name}을 추월 시작! (${isMobile ? '모바일' : 'PC'} 모드)`);
+                            //console.log(`🏃‍♂️ ${backPlayer.name}이 ${frontPlayer.name}을 추월 시작! (${isMobile ? '모바일' : 'PC'} 모드)`);
                             
                             // 추월한 사람에게 2초 개인 쿨다운 설정
                             this.playerOvertakeCooldowns.set(backPlayer.name, currentTime + 2000);
@@ -153,7 +153,7 @@ class GameController {
                         
                         // 디버그 로그
                         if (CONFIG.DEBUG.SHOW_OVERLAP_PREVENTION) {
-                            console.log(`${isMobile ? '[모바일]' : '[PC]'} 처리: ${p1.name} vs ${p2.name}, 거리: ${distance.toFixed(4)}, 기준: ${PUSH_DISTANCE.toFixed(3)}`);
+                            //console.log(`${isMobile ? '[모바일]' : '[PC]'} 처리: ${p1.name} vs ${p2.name}, 거리: ${distance.toFixed(4)}, 기준: ${PUSH_DISTANCE.toFixed(3)}`);
                         }
                     }
                 }
@@ -587,9 +587,9 @@ class GameController {
 
     // 기존 UI 관련 함수들 (변경 없음)
     initializeUI() {
-        console.log('Available Lottie files:', CONFIG.LOTTIE_FILES);
+        //console.log('Available Lottie files:', CONFIG.LOTTIE_FILES);
         this.shuffledLottieFiles = [...CONFIG.LOTTIE_FILES].sort(() => Math.random() - 0.5);
-        console.log('Shuffled Lottie files:', this.shuffledLottieFiles);
+        //console.log('Shuffled Lottie files:', this.shuffledLottieFiles);
         this.updatePlayerInputs();
     }
 
@@ -727,7 +727,7 @@ class GameController {
     }
 
     updateCustomRankSelector() {
-        console.log('Custom rank selector updated for', this.selectedPlayerCount, 'players');
+        //console.log('Custom rank selector updated for', this.selectedPlayerCount, 'players');
     }
 
     setupResizeHandler() {
@@ -764,7 +764,7 @@ class GameController {
             playerInputsContainer.appendChild(playerInput);
             
             if (i < this.shuffledLottieFiles.length) {
-                console.log(`Loading preview ${i}:`, this.shuffledLottieFiles[i]);
+                //console.log(`Loading preview ${i}:`, this.shuffledLottieFiles[i]);
                 this.loadLottiePreview(lottiePreview, this.shuffledLottieFiles[i]);
             }
         }
@@ -778,7 +778,7 @@ class GameController {
             return;
         }
         
-        console.log('Loading Lottie preview:', lottieFile);
+        //console.log('Loading Lottie preview:', lottieFile);
         
         try {
             const animation = lottie.loadAnimation({
@@ -804,7 +804,7 @@ class GameController {
             });
             
             animation.addEventListener('config_ready', () => {
-                console.log('✅ Lottie preview loaded successfully:', lottieFile);
+               // console.log('✅ Lottie preview loaded successfully:', lottieFile);
                 animation.setSpeed(1.5);
             });
             

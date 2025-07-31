@@ -88,7 +88,7 @@ class RaceRenderer {
             return;
         }
         
-        console.log('Loading Lottie animation for:', player.name, 'File:', player.lottieFile);
+        //console.log('Loading Lottie animation for:', player.name, 'File:', player.lottieFile);
         
         try {
             player.lottieAnimation = lottie.loadAnimation({
@@ -100,7 +100,7 @@ class RaceRenderer {
             });
             
             player.lottieAnimation.addEventListener('config_ready', () => {
-                console.log('Lottie animation loaded successfully for:', player.name);
+                //console.log('Lottie animation loaded successfully for:', player.name);
                 player.lottieAnimation.setSpeed(1.5);
             });
             

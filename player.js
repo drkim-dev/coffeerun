@@ -103,7 +103,7 @@ class Player {
             // 추월 완료 체크 (목표 위치를 넘어섰는지)
             if (this.progress > this.overtakeTarget) {
                 this.isOvertaking = false;
-                console.log(`✅ ${this.name} 추월 완료!`);
+               // console.log(`✅ ${this.name} 추월 완료!`);
             }
         }
         
@@ -151,12 +151,12 @@ class Player {
             this.stunned = true;
             this.allowOverlap = true;
             
-            console.log(`${this.name} 스턴 시작 (${stunDuration}ms)`);
+            //console.log(`${this.name} 스턴 시작 (${stunDuration}ms)`);
             
             setTimeout(() => {
                 this.stunned = false;
                 this.allowOverlap = false;
-                console.log(`${this.name} 스턴 종료`);
+                //console.log(`${this.name} 스턴 종료`);
             }, stunDuration);
         }
 
@@ -167,12 +167,12 @@ class Player {
             this.boosted = true;
             this.allowOverlap = true;
             
-            console.log(`${this.name} 부스트 시작 (${boostDuration}ms)`);
+            //console.log(`${this.name} 부스트 시작 (${boostDuration}ms)`);
             
             setTimeout(() => {
                 this.boosted = false;
                 this.allowOverlap = false;
-                console.log(`${this.name} 부스트 종료`);
+                //console.log(`${this.name} 부스트 종료`);
             }, boostDuration);
         }
 
@@ -181,12 +181,12 @@ class Player {
             this.reversed = true;
             this.allowOverlap = true;
             
-            console.log(`${this.name} 역주행 시작 (${duration}ms)`);
+            //console.log(`${this.name} 역주행 시작 (${duration}ms)`);
             
             setTimeout(() => {
                 this.reversed = false;
                 this.allowOverlap = false;
-                console.log(`${this.name} 역주행 종료`);
+                //console.log(`${this.name} 역주행 종료`);
             }, duration);
         }
 

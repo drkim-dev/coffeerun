@@ -29,7 +29,7 @@ function showSkillGuide() {
     openModal('skillModal');
 }
 
-// 🆕 기타 등수 선택 모달
+//  기타 등수 선택 모달
 function showCustomRanks() {
     if (gameController) {
         gameController.updateRankSelectionGrid();

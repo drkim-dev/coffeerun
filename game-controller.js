@@ -10,7 +10,7 @@ class GameController {
         this.lastFrameTime = 0;
         this.selectedPlayerCount = CONFIG.DEFAULT_PLAYERS;
         this.selectedLoserRank = CONFIG.DEFAULT_LOSER_RANK;
-        this.selectedGameDuration = CONFIG.DEFAULT_GAME_DURATION; // 🆕 20초 디폴트
+        this.selectedGameDuration = CONFIG.DEFAULT_GAME_DURATION; // 20초 디폴트
         this.shuffledVehicles = [];
         
         // 기타 선택 관련 변수
@@ -43,6 +43,68 @@ class GameController {
         this.loadingAnimation = null;
     }
 
+
+    cleanupResources() {
+        // 1.  플레이어별 Lottie 인스턴스 모두 destroy
+        if (this.players && Array.isArray(this.players)) {
+            this.players.forEach(player => {
+            // Lottie 인스턴스 파괴
+            if (player.lottieAnimation && typeof player.lottieAnimation.destroy === 'function') {
+                player.lottieAnimation.destroy();
+                player.lottieAnimation = null;
+            }
+            // 플레이어 관련 DOM 참조 끊기
+            player.element = null;
+            player.nameElement = null;
+            });
+        }
+
+        // 2.  프리뷰(PLAYER INPUT)들의 Lottie 인스턴스 destroy
+        // 프리뷰를 위해 따로 관리하는 배열/Map이 있으면 반복 처리, 없으면 아래처럼 시도
+        document.querySelectorAll('.lottie-preview').forEach(previewEl => {
+            // 만약 previewEl에 직접적으로 lottie 인스턴스가 없다면 이 부분은 생략 가능(확인 필요)
+            // 혹시 lottie가 자동 관리하는 인스턴스가 있다면, 아래처럼 수행하세요
+            try {
+            if (previewEl && previewEl.firstChild && typeof previewEl.firstChild.destroy === 'function') {
+                previewEl.firstChild.destroy();
+            }
+            } catch (e) { /* 무시 */ }
+            previewEl.innerHTML = '';
+        });
+
+        // 3.  로딩/기타 Lottie 애니메이션 destroy
+        if (this.loadingAnimation) {
+            this.loadingAnimation.destroy();
+            this.loadingAnimation = null;
+        }
+
+        // 4.  트랙 등 주요 DOM 요소 완전 초기화
+        const raceTrack = document.getElementById('raceTrack');
+        if (raceTrack) raceTrack.innerHTML = '';
+
+        // 5. 기타 상태/참조 해제
+        this.players = [];
+        this.playerOvertakeCooldowns.clear();
+        this.customRanksSelected = [];
+        this.selectionMode = 'single';
+        // 기타 변수도 필요시 null/초기화
+
+        // 6. 기타 UI 리셋(설정, 인풋 등)도 필요할 수 있음
+        // 예시: this.updatePlayerInputs();
+
+        // 7.  이벤트 리스너나 setTimeout/interval 클리어
+        // (이 구조는 event/timer가 많지 않으나, 있다면 전부 클리어해줘야 함)
+        // 예: clearTimeout(this.어떤타이머ID);
+
+        if (window.performance && window.performance.memory) {
+            const m = window.performance.memory;
+            console.log(`[cleanup] JS Heap: ${Math.round(m.usedJSHeapSize/1024/1024)}MB / ${Math.round(m.totalJSHeapSize/1024/1024)}MB (limit: ${Math.round(m.jsHeapSizeLimit/1024/1024)}MB)`);
+            } else {
+            console.log('[cleanup] 현재 사용 메모리 정보 (window.performance.memory)는 이 브라우저에서 지원하지 않음.');
+        }
+        console.log('[clean] Lottie, DOM, JS 상태/이벤트 모두 클린업 완료');
+    }
+
     initialize() {
         this.initializeUI();
         this.setupPlayerCountSelector();
@@ -51,7 +113,7 @@ class GameController {
         this.setupResizeHandler();
     }
 
-        // 🆕 게임시간 선택 설정 (CONFIG 업데이트 추가)
+        // 게임시간 선택 설정 (CONFIG 업데이트 추가)
         setupGameDurationSelector() {
             const setupContainer = document.querySelector('.setup-container');
             if (!setupContainer) return;
@@ -61,7 +123,7 @@ class GameController {
                     const duration = parseInt(e.target.dataset.time);
                     this.selectedGameDuration = duration;
                     
-                    // 🆕 CONFIG 동적 업데이트
+                    //  CONFIG 동적 업데이트
                     updateGameConfig(duration);
                     
                     // 모든 버튼에서 active 클래스 제거
@@ -69,19 +131,19 @@ class GameController {
                     // 선택된 버튼에 active 클래스 추가
                     e.target.classList.add('active');
                     
-                    // 🆕 시간 표시 업데이트
+                    //  시간 표시 업데이트
                     this.updateTimeDisplay();
                     
                     console.log(`🕐 게임 시간 선택: ${duration}초`);
                     
-                    // 🆕 디버깅용 CONFIG 정보 출력
+                    // 디버깅용 CONFIG 정보 출력
                     if (CONFIG.DEBUG.SHOW_SPACING_LOGS) {
                         logCurrentConfig();
                     }
                 }
             });
         }
-        // 🆕 시간 표시 업데이트 함수
+        //  시간 표시 업데이트 함수
         updateTimeDisplay() {
             const timeLeft = document.getElementById('timeLeft');
             if (timeLeft) {
@@ -89,7 +151,7 @@ class GameController {
             }
         }
 
-    // 🆕 간단한 밀어내기 시스템 + 추월 시스템 (개인 쿨다운)
+    //  간단한 밀어내기 시스템 + 추월 시스템 (개인 쿨다운)
         preventOverlap(players) {
             if (!CONFIG.OVERLAP_PREVENTION.ENABLED) return;
             
@@ -119,7 +181,7 @@ class GameController {
                     
                     const distance = Math.abs(p1.progress - p2.progress);
                     
-                    if (distance < PUSH_DISTANCE) { // 🆕 동적으로 조정된 간격 사용
+                    if (distance < PUSH_DISTANCE) { //  동적으로 조정된 간격 사용
                         // 앞사람/뒷사람 정의
                         const frontPlayer = p1.progress > p2.progress ? p1 : p2;
                         const backPlayer = p1.progress > p2.progress ? p2 : p1;
@@ -142,7 +204,7 @@ class GameController {
                             this.playerOvertakeCooldowns.set(backPlayer.name, currentTime + 2000);
                             
                         } else {
-                            // 간격 유지 - 밀어내기 (🆕 동적으로 조정된 힘 사용)
+                            // 간격 유지 - 밀어내기 ( 동적으로 조정된 힘 사용)
                             frontPlayer.progress += PUSH_FORCE;
                             backPlayer.progress -= PUSH_FORCE;
                             
@@ -167,9 +229,9 @@ class GameController {
             }
         }
 
-    // 🆕 추월 알림 삭제 (더 이상 사용 안함)
+    // 추월 알림 삭제 (더 이상 사용 안함)
     // showOvertakeNotification() 함수 제거
-    // 🆕 레이스 루프 (동적 시간 사용)
+    //  레이스 루프 (동적 시간 사용)
     raceLoop() {
         if (!this.gameRunning) return;
         
@@ -192,7 +254,7 @@ class GameController {
             player.updatePosition(deltaTime, this.players, this.renderer.trackPath);
         });
         
-        // 🆕 간단한 밀어내기 시스템 (매 프레임마다)
+        // 간단한 밀어내기 시스템 (매 프레임마다)
         this.preventOverlap(this.players);
         
         // 시각적 업데이트
@@ -202,7 +264,7 @@ class GameController {
         
         // 승부 체크
         const finishedPlayers = this.players.filter(p => p.finished);
-        // 🆕 동적 게임 시간 사용
+        // 동적 게임 시간 사용
         if (finishedPlayers.length === this.players.length || elapsed >= CONFIG.RACE_DURATION) {
             this.endRace();
             return;
@@ -212,7 +274,7 @@ class GameController {
     }
 
 
-// 🆕 로딩 페이지 표시
+//  로딩 페이지 표시
     async showLoadingPage() {
         const overlay = document.getElementById('loadingOverlay');
         overlay.classList.add('show');
@@ -233,7 +295,7 @@ class GameController {
         overlay.classList.remove('show');
     }
 
-    // 🆕 게임 설정 요약 업데이트
+    //  게임 설정 요약 업데이트
     updateGameSettingsSummary() {
         const playerCountEl = document.getElementById('summaryPlayerCount');
         const gameTimeEl = document.getElementById('summaryGameTime');
@@ -259,7 +321,7 @@ class GameController {
         }
     }
 
-    // 🆕 랜덤 팁 표시
+    //  랜덤 팁 표시
     showRandomTip() {
         const tipEl = document.getElementById('gameTip');
         if (tipEl) {
@@ -268,7 +330,7 @@ class GameController {
         }
     }
 
-    // 🆕 로딩 애니메이션 시작
+    // 로딩 애니메이션 시작
     startLoadingAnimation() {
         const container = document.getElementById('loadingAnimation');
         if (!container) return;
@@ -319,7 +381,7 @@ class GameController {
         }
     }
 
-    // 🆕 프로그레스 바 애니메이션
+    // 프로그레스 바 애니메이션
     async animateLoadingProgress() {
         const progressFill = document.getElementById('loadingProgressFill');
         const progressPercentage = document.getElementById('loadingPercentage');
@@ -347,7 +409,7 @@ class GameController {
     
     
 
-   // 🆕 수정된 startGame 함수
+   // 수정된 startGame 함수
     async startGame() {
         const inputs = document.querySelectorAll('.player-input:not(.hidden) input');
         this.players = [];
@@ -372,7 +434,7 @@ class GameController {
             return;
         }
         
-        // 🆕 로딩 페이지 표시
+        // 로딩 페이지 표시
         await this.showLoadingPage();
         
         document.querySelector('.setup-container').style.display = 'none';
@@ -409,7 +471,7 @@ class GameController {
         console.log('🏁 레이스 시작! (간소화된 시스템)');
     }
 
-    // 🆕 간소화된 레이스 루프
+    //  간소화된 레이스 루프
     raceLoop() {
         if (!this.gameRunning) return;
         
@@ -431,7 +493,7 @@ class GameController {
             player.updatePosition(deltaTime, this.players, this.renderer.trackPath);
         });
         
-        // 🆕 간단한 밀어내기 시스템 (매 프레임마다)
+        //  간단한 밀어내기 시스템 (매 프레임마다)
         this.preventOverlap(this.players);
         
         // 시각적 업데이트
@@ -517,7 +579,7 @@ class GameController {
         console.log('🏁 레이스 종료!');
     }
 
-         // 🆕 resetGame에서 로딩 애니메이션 정리
+         //  resetGame에서 로딩 애니메이션 정리
     resetGame() {
         this.gameRunning = false;
         this.players = [];
@@ -531,7 +593,7 @@ class GameController {
         this.selectedGameDuration = CONFIG.DEFAULT_GAME_DURATION;
         updateGameConfig(this.selectedGameDuration);
         
-        // 🆕 로딩 애니메이션 정리
+        //  로딩 애니메이션 정리
         if (this.loadingAnimation) {
             this.loadingAnimation.destroy();
             this.loadingAnimation = null;
@@ -578,6 +640,7 @@ class GameController {
         this.updatePlayerInputs();
         
         console.log('🔄 게임 리셋 완료 (게임시간: ' + this.selectedGameDuration + '초)');
+        window.location.reload();
     }
 
 
@@ -587,6 +650,7 @@ class GameController {
 
     // 기존 UI 관련 함수들 (변경 없음)
     initializeUI() {
+        this.cleanupResources();
         //console.log('Available Lottie files:', CONFIG.LOTTIE_FILES);
         this.shuffledLottieFiles = [...CONFIG.LOTTIE_FILES].sort(() => Math.random() - 0.5);
         //console.log('Shuffled Lottie files:', this.shuffledLottieFiles);
@@ -804,7 +868,7 @@ class GameController {
             });
             
             animation.addEventListener('config_ready', () => {
-               // console.log('✅ Lottie preview loaded successfully:', lottieFile);
+               // console.log(' Lottie preview loaded successfully:', lottieFile);
                 animation.setSpeed(1.5);
             });
             

@@ -22,14 +22,14 @@ class Player {
         this.finished = false;
         this.finishTime = 0;
         
-        // 🆕 간단한 시스템
+        //  간단한 시스템
         this.allowOverlap = false;           // 스킬 중 추월 허용 여부
         this.personalMultiplier = 0.8 + Math.random() * 0.4; 
         this.randomSpeedMultiplier = 1.0;
         this.lastRandomSpeedUpdate = 0;
         this.consistencyFactor = Math.random();
         
-        // 🆕 추월 상태 관리
+        //  추월 상태 관리
         this.isOvertaking = false;           // 추월 중인지
         this.overtakeStartTime = 0;          // 추월 시작 시간
         this.overtakeTarget = 0;             // 추월 목표 위치
@@ -57,7 +57,7 @@ class Player {
         return personalMin + Math.random() * personalRange;
     }
 
-    // 🆕 간단한 위치 업데이트 (복잡한 간격 조정 제거)
+    //  간단한 위치 업데이트 (복잡한 간격 조정 제거)
     updatePosition(deltaTime, allPlayers = [], trackPath) {
         if (this.finished || this.stunned) return;
 
@@ -71,7 +71,7 @@ class Player {
 
         let speed = this.baseSpeed;
         
-        // 🆕 간단한 캐치업 시스템 (아주 약하게만)
+        //  간단한 캐치업 시스템 (아주 약하게만)
         if (allPlayers.length > 0) {
             const ranking = this.getRanking(allPlayers);
             const totalPlayers = allPlayers.filter(p => !p.finished).length;
@@ -94,7 +94,7 @@ class Player {
         if (this.boosted) speed *= 2.8;
         if (this.reversed) speed *= -1.2;
         
-        // 🆕 추월 중이면 속도 2배!
+        //  추월 중이면 속도 2배!
         if (this.isOvertaking) {
             speed *= 2.0;
             
@@ -122,7 +122,7 @@ class Player {
         }
     }
 
-    // 🆕 1등과의 거리
+    //  1등과의 거리
     getDistanceToLeader(allPlayers) {
         const activePlayers = allPlayers.filter(p => !p.finished);
         if (activePlayers.length === 0) return 0;
@@ -133,7 +133,7 @@ class Player {
         return Math.abs(leader.progress - this.progress);
     }
 
-    // 🆕 꼴찌와의 거리
+    //  꼴찌와의 거리
     getDistanceToLast(allPlayers) {
         const activePlayers = allPlayers.filter(p => !p.finished);
         if (activePlayers.length === 0) return 0;
@@ -190,7 +190,7 @@ class Player {
             }, duration);
         }
 
-        // 🆕 랜덤 속도 업데이트 (동적 기본속도 사용)
+        //  랜덤 속도 업데이트 (동적 기본속도 사용)
         updateRandomSpeed(allPlayers = []) {
             const ranking = this.getRanking(allPlayers);
             const totalPlayers = allPlayers.filter(p => !p.finished).length;
@@ -199,7 +199,7 @@ class Player {
             const baseRandom = 0.8 + Math.random() * 0.4;
             this.randomSpeedMultiplier = baseRandom * this.personalMultiplier * stabilityFactor;
             
-            // 🆕 동적 baseSpeed 생성
+            //  동적 baseSpeed 생성
             this.baseSpeed = this.generateUniqueSpeed();
             
             // 약간의 순위별 조정

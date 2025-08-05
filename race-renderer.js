@@ -271,7 +271,7 @@ class RaceRenderer {
                 const rankItem = document.createElement('div');
                 rankItem.className = 'ranking-item';
                 
-                // 🆕 스킬 상태별 시각 효과 추가
+                //  스킬 상태별 시각 효과 추가
                 if (player.allowOverlap && !player.finished) {
                     if (player.boosted) {
                         rankItem.classList.add('player-boosted'); // 금색 효과
@@ -313,7 +313,7 @@ class RaceRenderer {
                     flex-shrink: 0;
                 `;
                 
-                // ❌ 기존 이모티콘 코드 제거
+                //  기존 이모티콘 코드 제거
                 // if (player.allowOverlap && !player.finished) {
                 //     const statusIcon = document.createElement('span');
                 //     if (player.boosted) {
@@ -404,19 +404,19 @@ class RaceRenderer {
         this.createCelebration();
     }
 
-    // 🆕 최종 순위도 progress 기준으로 수정
+    //  최종 순위도 progress 기준으로 수정
     setupFinalRankings(winners) {
         const finalRankings = document.getElementById('finalRankings');
         finalRankings.innerHTML = '';
         
-        // 🎯 progress 기준으로 전체 플레이어 순위 계산
+        // progress 기준으로 전체 플레이어 순위 계산
         const sortedPlayers = [...window.gameController.players].sort((a, b) => {
             if (a.finished && b.finished) {
                 return a.finishTime - b.finishTime;
             }
             if (a.finished) return -1;
             if (b.finished) return 1;
-            return b.progress - a.progress; // 🆕 progress 기준
+            return b.progress - a.progress; //  progress 기준
         });
         
         const winnerPlayers = new Set(winners.map(w => w.player));

@@ -37,23 +37,23 @@ class EventSystem {
         this.usedEvents = [];
     }
 
-        // 🆕 대폭발 이벤트 (조건부 알림/파티클)
+        //  대폭발 이벤트 (조건부 알림/파티클)
             bombEvent(players) {
                 const sorted = players.sort((a, b) => b.progress - a.progress);
                 const topPlayers = sorted.slice(0, Math.min(2, sorted.length));
                 const bottomPlayers = sorted.slice(Math.min(2, sorted.length));
                 
-                // 🆕 효과 표시 여부 체크
+                //  효과 표시 여부 체크
                 if (CONFIG.SHOW_EFFECTS) {
                     this.showEventNotification('💣 대폭발!', '선두 2명이 느려진다!', CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.STUN);
                 }
                 
-                // 🆕 동적 스킬 지속시간 사용
+                //  동적 스킬 지속시간 사용
                 topPlayers.forEach(player => {
                     player.applyStun(); // CONFIG에서 자동으로 지속시간 가져옴
                 });
 
-                // 🆕 동적 부스트 지속시간 사용
+                //  동적 부스트 지속시간 사용
                 bottomPlayers.forEach(player => {
                     player.applyBoost(Math.round(CONFIG.SKILL_SYSTEM.SKILL_DURATIONS.BOOST * 0.4)); // 2초 -> 동적 조정
                 });
@@ -61,24 +61,24 @@ class EventSystem {
                 console.log('💣 대폭발! 상위권 스턴, 나머지 부스터!');
             }
 
-            // ⚡ 번개공격 이벤트 (조건부 알림/파티클)
+            // 번개공격 이벤트 (조건부 알림/파티클)
             lightningEvent(players) {
                 const sorted = players.sort((a, b) => b.progress - a.progress);
                 const targetCount = Math.min(3, Math.ceil(players.length / 2));
                 const targets = sorted.slice(0, targetCount);
                 const nonTargets = sorted.slice(targetCount);
                 
-                // 🆕 효과 표시 여부 체크
+                //  효과 표시 여부 체크
                 if (CONFIG.SHOW_EFFECTS) {
                     this.showEventNotification('⚡ 번개 공격!', '상위권이 마비된다!', CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.STUN);
                 }
                 
-                // 🆕 동적 스킬 지속시간 사용
+                //  동적 스킬 지속시간 사용
                 targets.forEach(target => {
                     target.applyStun(); // CONFIG에서 자동
                 });
 
-                // 🆕 동적 부스트 지속시간 사용
+                //  동적 부스트 지속시간 사용
                 nonTargets.forEach(player => {
                     player.applyBoost(Math.round(CONFIG.SKILL_SYSTEM.SKILL_DURATIONS.BOOST * 0.5)); // 2.5초 -> 동적 조정
                 });
@@ -86,17 +86,17 @@ class EventSystem {
                 console.log('⚡ 번개 공격! 상위권 마비, 나머지 각성!');
             }
 
-            // 🚀 터보부스터 이벤트 (조건부 알림/파티클)
+            // 터보부스터 이벤트 (조건부 알림/파티클)
             boostEvent(players) {
                 const sorted = players.sort((a, b) => a.progress - b.progress);
                 const bottomPlayers = sorted.slice(0, Math.min(2, sorted.length));
                 
-                // 🆕 효과 표시 여부 체크
+                //  효과 표시 여부 체크
                 if (CONFIG.SHOW_EFFECTS) {
                     this.showEventNotification('🚀 터보 부스터!', '꼴찌가 빨라진다!', CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.BOOST);
                 }
                 
-                // 🆕 동적 부스트 지속시간 사용
+                //  동적 부스트 지속시간 사용
                 bottomPlayers.forEach(player => {
                     player.applyBoost(); // CONFIG에서 자동
                 });
@@ -104,17 +104,17 @@ class EventSystem {
                 console.log('🚀 터보 부스터! 하위권이 부스트되었습니다!');
             }
 
-            // 🔥 각성 이벤트 (조건부 알림/파티클)
+            // 각성 이벤트 (조건부 알림/파티클)
             spurtEvent(players) {
                 const sorted = players.sort((a, b) => a.progress - b.progress);
                 const bottomHalf = sorted.slice(0, Math.ceil(sorted.length / 2));
                 
-                // 🆕 효과 표시 여부 체크
+                //  효과 표시 여부 체크
                 if (CONFIG.SHOW_EFFECTS) {
                     this.showEventNotification('🔥 각성!', '하위권이 각성한다!', CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.BOOST);
                 }
                 
-                // 🆕 동적 부스트 지속시간 사용
+                //  동적 부스트 지속시간 사용
                 bottomHalf.forEach(player => {
                     player.applyBoost(); // CONFIG에서 자동
                 });
@@ -127,7 +127,7 @@ class EventSystem {
                 const activePlayers = players.filter(p => !p.finished);
                 if (activePlayers.length < 2) return;
                 
-                // 🆕 효과 표시 여부 체크
+                //  효과 표시 여부 체크
                 if (CONFIG.SHOW_EFFECTS) {
                     this.showEventNotification('🌪️ 대혼란!', '모든 순위가 뒤바뀐다!', CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.INSTANT);
                 }
@@ -146,7 +146,7 @@ class EventSystem {
                 activePlayers.forEach((player, index) => {
                     player.progress = shuffledProgress[index];
                     
-                    // 🆕 파티클 효과도 조건부 표시
+                    //  파티클 효과도 조건부 표시
                     if (CONFIG.SHOW_EFFECTS) {
                         this.addParticleEffect(player.element, '🌪️', '#a29bfe');
                         
@@ -163,7 +163,7 @@ class EventSystem {
             snipeEvent(players) {
                 if (players.length < 2) return;
                 
-                // 🆕 효과 표시 여부 체크
+                //  효과 표시 여부 체크
                 if (CONFIG.SHOW_EFFECTS) {
                     this.showEventNotification('🎯 저격!', '1등이 꼴찌가 된다!', CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.INSTANT);
                 }
@@ -177,7 +177,7 @@ class EventSystem {
                 first.progress = last.progress;
                 last.progress = tempProgress;
                 
-                // 🆕 파티클 효과도 조건부 표시
+                //  파티클 효과도 조건부 표시
                 if (CONFIG.SHOW_EFFECTS) {
                     this.addParticleEffect(first.element, '🎯', '#e17055');
                     this.addParticleEffect(last.element, '🚀', '#e17055');
@@ -191,7 +191,7 @@ class EventSystem {
                 console.log('🎯 저격! 1등과 꼴찌가 자리를 바꿨습니다!');
             }
 
-            // 🆕 이벤트 알림 표시 (동적 지속시간 매개변수 추가)
+            //  이벤트 알림 표시 (동적 지속시간 매개변수 추가)
             showEventNotification(title, description, duration = null) {
                 // duration이 null이면 기본값 사용
                 const notificationDuration = duration || CONFIG.SKILL_SYSTEM.NOTIFICATION_DURATIONS.INSTANT;
@@ -239,10 +239,10 @@ class EventSystem {
     // 이벤트 시스템 리셋
     reset() {
         this.usedEvents = [];
-        console.log('🔄 이벤트 시스템 리셋');
+        console.log('이벤트 시스템 리셋');
     }
 
-    // 🆕 파티클 효과 함수 (저격, 대혼란용)
+    //  파티클 효과 함수 (저격, 대혼란용)
     addParticleEffect(element, emoji, color) {
         if (!element) return;
         
